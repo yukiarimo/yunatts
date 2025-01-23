@@ -234,15 +234,9 @@ if __name__ == "__main__":
     print(used_sym)
     print(not_existed_sym)
 
-    with open('./text/es_phonemizer/es_symbols.txt', 'w') as g:
-        g.writelines(symbols + not_existed_sym)
+    with open('./text/es_phonemizer/es_symbols.json', 'w') as f:
+        json.dump({"symbols": symbols + not_existed_sym}, f, indent=4)
         
     with open('./text/es_phonemizer/example_ipa.txt', 'w') as g:
         g.writelines(phonemes)
-        
-    data = {'symbols': symbols + not_existed_sym}
-    with open('./text/es_phonemizer/es_symbols_v2.json', 'w') as f:
-        json.dump(data, f, indent=4)
-
-
 

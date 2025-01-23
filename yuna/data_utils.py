@@ -37,12 +37,10 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         )
         if self.use_mel_spec_posterior:
             self.n_mel_channels = getattr(hparams, "n_mel_channels", 80)
-
         self.cleaned_text = getattr(hparams, "cleaned_text", False)
-
         self.add_blank = hparams.add_blank
         self.min_text_len = getattr(hparams, "min_text_len", 1)
-        self.max_text_len = getattr(hparams, "max_text_len", 300)
+        self.max_text_len = getattr(hparams, "max_text_len", 1000)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_sid_text)
