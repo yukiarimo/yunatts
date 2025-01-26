@@ -1,6 +1,5 @@
 from numpy import zeros, int32, float32
 from torch import from_numpy
-
 from .core import maximum_path_jit
 
 def maximum_path(neg_cent, mask):

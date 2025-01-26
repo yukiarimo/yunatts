@@ -2,18 +2,15 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-
 from yuna import commons
 from yuna import modules
 from yuna import attentions
-
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-
 from yuna.commons import init_weights, get_padding
 import yuna.monotonic_align as monotonic_align
 
-class DurationDiscriminator(nn.Module):  # vits2
+class DurationDiscriminator(nn.Module):
     def __init__(
         self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0
     ):
@@ -694,8 +691,6 @@ class ReferenceEncoder(nn.Module):
             for i in range(K)
         ]
         self.convs = nn.ModuleList(convs)
-        # self.wns = nn.ModuleList([weight_norm(num_features=ref_enc_filters[i]) for i in range(K)]) # noqa: E501
-
         out_channels = self.calculate_channels(spec_channels, 3, 2, 1, K)
         self.gru = nn.GRU(
             input_size=ref_enc_filters[-1] * out_channels,

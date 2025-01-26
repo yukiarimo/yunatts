@@ -1,6 +1,5 @@
 import torch
 from torch.nn import functional as F
-
 import numpy as np
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3

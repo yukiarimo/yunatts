@@ -1,7 +1,3 @@
-import pickle
-import os
-import re
-
 from . import symbols
 from .fr_phonemizer import cleaner as fr_cleaner
 from .fr_phonemizer import fr_to_ipa

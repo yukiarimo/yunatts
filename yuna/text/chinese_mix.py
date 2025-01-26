@@ -1,6 +1,5 @@
 import os
 import re
-
 import cn2an
 from pypinyin import lazy_pinyin, Style
 

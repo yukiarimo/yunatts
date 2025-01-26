@@ -2,7 +2,6 @@ import json
 from collections import defaultdict
 from random import shuffle
 from typing import Optional
-
 from tqdm import tqdm
 import click
 from text.cleaner import clean_text_bert

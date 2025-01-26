@@ -1,9 +1,7 @@
 import os
 import re
-
 import cn2an
 from pypinyin import lazy_pinyin, Style
-
 from .symbols import punctuation
 from .tone_sandhi import ToneSandhi
 

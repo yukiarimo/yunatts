@@ -77,22 +77,12 @@ def spectrogram_torch_conv(y, n_fft, sampling_rate, hop_size, win_size, center=F
         hann_window[wnsize_dtype_device] = torch.hann_window(win_size).to(dtype=y.dtype, device=y.device)
 
     y = torch.nn.functional.pad(y.unsqueeze(1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
-    
-    # ******************** original ************************#
-    # y = y.squeeze(1)
-    # spec1 = torch.stft(y, n_fft, hop_length=hop_size, win_length=win_size, window=hann_window[wnsize_dtype_device],
-    #                   center=center, pad_mode='reflect', normalized=False, onesided=True, return_complex=False)
-
-    # ******************** ConvSTFT ************************#
     freq_cutoff = n_fft // 2 + 1
     fourier_basis = torch.view_as_real(torch.fft.fft(torch.eye(n_fft)))
     forward_basis = fourier_basis[:freq_cutoff].permute(2, 0, 1).reshape(-1, 1, fourier_basis.shape[1])
     forward_basis = forward_basis * torch.as_tensor(librosa.util.pad_center(torch.hann_window(win_size), size=n_fft)).float()
 
     import torch.nn.functional as F
-
-    # if center:
-    #     signal = F.pad(y[:, None, None, :], (n_fft // 2, n_fft // 2, 0, 0), mode = 'reflect').squeeze(1)
     assert center is False
 
     forward_transform_squared = F.conv1d(y, forward_basis.to(y.device), stride = hop_size)

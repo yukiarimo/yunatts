@@ -1,6 +1,4 @@
 """Set of default text cleaners"""
-# TODO: pick the cleaner for languages dynamically
-
 import re
 
 # Regular expression matching whitespace:

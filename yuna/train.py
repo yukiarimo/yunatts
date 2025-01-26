@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-# Switch to new-style autocast/GradScaler
 from torch.amp import autocast, GradScaler
 from tqdm import tqdm
 import logging
@@ -40,7 +39,6 @@ try:
     # Optional: enable flash and/or math SDPA kernels if your PyTorch version supports it
     torch.backends.cuda.enable_flash_sdp(True)
     torch.backends.cuda.enable_math_sdp(True)
-    # torch.backends.cuda.enable_mem_efficient_sdp(True)
 except:
     pass
 

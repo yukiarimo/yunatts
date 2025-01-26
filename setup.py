@@ -2,7 +2,6 @@ import os
 from setuptools import setup, find_packages
 from setuptools.command.develop import develop
 from setuptools.command.install import install
-
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 with open('requirements.txt') as f:
@@ -25,13 +24,10 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=reqs,
-    package_data={
-        '': ['*.txt', 'cmudict_*'],
-    },
+    package_data={'': ['*.txt', 'cmudict_*']},
     entry_points={
         "console_scripts": [
             "yunatts = yuna.main:main",
-            "yuna = yuna.main:main",
         ],
     },
 )
