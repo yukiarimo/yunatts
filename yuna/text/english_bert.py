@@ -2,7 +2,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForMaskedLM
 import sys
 
-model_id = 'bert-base-uncased'
+model_id = 'yukiarimo/yuna-ai-hanasu-v1'
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = None
 

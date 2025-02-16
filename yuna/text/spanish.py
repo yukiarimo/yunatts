@@ -55,8 +55,7 @@ def refine_syllables(syllables):
             tones.append(tone)
     return phonemes, tones
 
-# model_id = 'bert-base-uncased'
-model_id = 'dccuchile/bert-base-spanish-wwm-uncased'
+model_id = 'yukiarimo/yuna-ai-hanasu-v1'
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 def g2p(text, pad_start_end=True, tokenized=None):

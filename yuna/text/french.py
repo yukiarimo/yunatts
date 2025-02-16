@@ -15,7 +15,7 @@ def text_normalize(text):
     text = fr_cleaner.french_cleaners(text)
     return text
 
-model_id = 'dbmdz/bert-base-french-europeana-cased'
+model_id = 'yukiarimo/yuna-ai-hanasu-v1'
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 def g2p(text, pad_start_end=True, tokenized=None):

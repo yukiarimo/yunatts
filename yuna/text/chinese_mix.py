@@ -91,7 +91,7 @@ def _get_initials_finals(word):
         finals.append(v)
     return initials, finals
 
-model_id = 'bert-base-multilingual-uncased'
+model_id = 'yukiarimo/yuna-ai-hanasu-v1'
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 def _g2p(segments):
     phones_list = []
@@ -189,7 +189,7 @@ def text_normalize(text):
 
 def get_bert_feature(text, word2ph, device):
     from . import chinese_bert
-    return chinese_bert.get_bert_feature(text, word2ph, model_id='bert-base-multilingual-uncased', device=device)
+    return chinese_bert.get_bert_feature(text, word2ph, model_id='yukiarimo/yuna-ai-hanasu-v1', device=device)
 
 from .chinese import _g2p as _chinese_g2p
 def _g2p_v2(segments):

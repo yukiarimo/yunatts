@@ -546,9 +546,7 @@ def distribute_phone(n_phone, n_word):
         phones_per_word[min_index] += 1
     return phones_per_word
 
-# tokenizer = AutoTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-v3')
-
-model_id = 'tohoku-nlp/bert-base-japanese-v3'
+model_id = 'yukiarimo/yuna-ai-hanasu-v1'
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 def g2p(norm_text):
 
@@ -597,32 +595,3 @@ def get_bert_feature(text, word2ph, device):
     from text import japanese_bert
 
     return japanese_bert.get_bert_feature(text, word2ph, device=device)
-
-if __name__ == "__main__":
-    # tokenizer = AutoTokenizer.from_pretrained("./bert/bert-base-japanese-v3")
-    text = "こんにちは、世界！..."
-    text = 'ええ、僕はおきなと申します。こちらの小さいわらべは杏子。ご挨拶が遅れてしまいすみません。あなたの名は?'
-    text = 'あの、お前以外のみんなは、全員生きてること?'
-    from text.japanese_bert import get_bert_feature
-
-    text = text_normalize(text)
-    print(text)
-    phones, tones, word2ph = g2p(text)
-    bert = get_bert_feature(text, word2ph)
-
-    print(phones, tones, word2ph, bert.shape)
-
-# if __name__ == '__main__':
-#     from pykakasi import kakasi
-#     # Initialize kakasi object
-#     kakasi = kakasi()
-
-#     # Set options for converting Chinese characters to Katakana
-#     kakasi.setMode("J", "H")  # Chinese to Katakana
-#     kakasi.setMode("K", "H")  # Hiragana to Katakana
-
-#     # Convert Chinese characters to Katakana
-#     conv = kakasi.getConverter()
-#     katakana_text = conv.do('ええ、僕はおきなと申します。こちらの小さいわらべは杏子。ご挨拶が遅れてしまいすみません。あなたの名は?')  # Replace with your Chinese text
-
-#     print(katakana_text)  # Output: ニーハオセカイ
