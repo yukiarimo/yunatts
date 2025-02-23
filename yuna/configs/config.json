@@ -1,7 +1,7 @@
 {
   "train": {
-    "log_interval": 200,
-    "eval_interval": 400,
+    "log_interval": 100,
+    "eval_interval": 200,
     "seed": 42,
     "epochs": 100000,
     "learning_rate": 0.00035,
@@ -21,8 +21,8 @@
     "skip_optimizer": true
   },
   "data": {
-    "training_files": "/content/drive/MyDrive/Yuna/train.list",
-    "validation_files": "/content/drive/MyDrive/Yuna/val.list",
+    "training_files": "/Users/yuki/Documents/Github/yunatts/yuna/configs/Yuna/train.list",
+    "validation_files": "/Users/yuki/Documents/Github/yunatts/yuna/configs/Yuna/val.list",
     "max_wav_value": 32768.0,
     "sampling_rate": 48000,
     "filter_length": 2048,
@@ -35,9 +35,9 @@
     "n_speakers": 3,
     "cleaned_text": true,
     "spk2id": {
-      "Yuna": 0,
-      "Yunaru": 1,
-      "Yunaja": 2
+      "Yunaja": 0,
+      "Yuna": 1,
+      "Yunaru": 2
     }
   },
   "model": {
@@ -315,6 +315,7 @@
     "-",
     "¿",
     "¡",
+    "▁",
     "SP",
     "UNK"
   ]

@@ -46,41 +46,37 @@ def main(
         cleaned_path = metadata + ".cleaned"
 
     if clean:
+        device = 'cuda:0' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
         out_file = open(cleaned_path, "w", encoding="utf-8")
         new_symbols = []
         for line in tqdm(open(metadata, encoding="utf-8").readlines()):
-            try:
-                utt, spk, language, text = line.strip().split("|")
-                norm_text, phones, tones, word2ph, bert = clean_text_bert(text, language, device='cuda:0')
-                for ph in phones:
-                    if ph not in symbols and ph not in new_symbols:
-                        new_symbols.append(ph)
-                        print('update!, now symbols:')
-                        print(new_symbols)
-                        with open(f'{language}_symbol.txt', 'w') as f:
-                            f.write(f'{new_symbols}')
+            utt, spk, language, text = line.strip().split("|")
+            norm_text, phones, tones, word2ph, bert = clean_text_bert(text, language, device=device)
+            for ph in phones:
+                if ph not in symbols and ph not in new_symbols:
+                    new_symbols.append(ph)
+                    print('update!, now symbols:')
+                    print(new_symbols)
+                    with open(f'{language}_symbol.txt', 'w') as f:
+                        f.write(f'{new_symbols}')
 
-                assert len(phones) == len(tones)
-                assert len(phones) == sum(word2ph)
-                out_file.write(
-                    "{}|{}|{}|{}|{}|{}|{}\n".format(
-                        utt,
-                        spk,
-                        language,
-                        norm_text,
-                        " ".join(phones),
-                        " ".join([str(i) for i in tones]),
-                        " ".join([str(i) for i in word2ph]),
-                    )
+            assert len(phones) == len(tones)
+            assert len(phones) == sum(word2ph)
+            out_file.write(
+                "{}|{}|{}|{}|{}|{}|{}\n".format(
+                    utt,
+                    spk,
+                    language,
+                    norm_text,
+                    " ".join(phones),
+                    " ".join([str(i) for i in tones]),
+                    " ".join([str(i) for i in word2ph]),
                 )
-                bert_path = utt.replace(".wav", ".bert.pt")
-                os.makedirs(os.path.dirname(bert_path), exist_ok=True)
-                torch.save(bert.cpu(), bert_path)
-            except Exception as error:
-                print("err!", line, error)
-
+            )
+            bert_path = utt.replace(".wav", ".bert.pt")
+            os.makedirs(os.path.dirname(bert_path), exist_ok=True)
+            torch.save(bert.cpu(), bert_path)
         out_file.close()
-
         metadata = cleaned_path
 
     spk_utt_map = defaultdict(list)
