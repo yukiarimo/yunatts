@@ -1,7 +1,6 @@
 CONFIG=$1
 GPUS=$2
 MODEL_NAME=$(basename "$(dirname $CONFIG)")
-
 PORT=10902
 
 while : # auto-resume: the code sometimes crash due to bug of gloo on some gpus

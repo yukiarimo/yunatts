@@ -8,4 +8,4 @@ build/
 *.egg-info/
 *.zip
 *.wav
-yuna/configs/Yuna/*
+hanasu/configs/Yuna/*

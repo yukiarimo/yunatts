@@ -19,7 +19,7 @@ class PostDevelopCommand(develop):
         os.system('python -m unidic download')
 
 setup(
-    name='yunatts',
+    name='hanasu',
     version='1.0.0',
     packages=find_packages(),
     include_package_data=True,
@@ -27,7 +27,7 @@ setup(
     package_data={'': ['*.txt', 'cmudict_*']},
     entry_points={
         "console_scripts": [
-            "yunatts = yuna.main:main",
+            "hanasu = hanasu.main:main",
         ],
     },
 )

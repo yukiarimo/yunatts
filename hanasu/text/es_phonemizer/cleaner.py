@@ -1,6 +1,3 @@
-"""Set of default text cleaners"""
-# TODO: pick the cleaner for languages dynamically
-
 import re
 
 # Regular expression matching whitespace:
@@ -104,4 +101,3 @@ def spanish_cleaners(text):
     text = collapse_whitespace(text)
     text = re.sub(r'([^\.,!\?\-…])$', r'\1.', text)
     return text
-

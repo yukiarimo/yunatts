@@ -3,7 +3,7 @@ import unicodedata
 from transformers import AutoTokenizer
 from . import punctuation, symbols
 from num2words import num2words
-from yuna.text.ko_dictionary import english_dictionary, etc_dictionary
+from hanasu.text.ko_dictionary import english_dictionary, etc_dictionary
 from anyascii import anyascii
 from jamo import hangul_to_jamo
 

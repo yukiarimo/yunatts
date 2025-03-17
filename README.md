@@ -1,33 +1,48 @@
-# Yuna TTS
-Welcome to Yuna TTS, a leading text-to-speech (TTS) engine designed to provide a natural and expressive voice for your applications. Yuna TTS is a deep learning-based TTS engine that can generate high-quality speech from text. It is designed to be easy to use and integrate into your applications, with support for multiple languages and voices.
+# Hanasu
+Welcome to Hanasu, a human-like TTS model based on the multilingual Hanasu V1 BERT encoder and VITS architecture. Hanasu is a Japanese word that means "to speak." This project aims to build a TTS model that can speak multiple languages and mimic human-like prosody.
 
 ## Table of Content
-- [Yuna TTS](#yuna-tts)
+- [Hanasu](#hanasu)
   - [Table of Content](#table-of-content)
   - [Installation](#installation)
+    - [Requirements](#requirements)
   - [Usage](#usage)
     - [Language Support](#language-support)
     - [CLI](#cli)
     - [Python API](#python-api)
   - [Training](#training)
-    - [Data Preparation](#data-preparation)
-    - [Training](#training-1)
-    - [Inference](#inference)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
 
 ## Installation
-The repo is developed and tested on `Ubuntu 20.04` and `Python 3.9`. To install YunaTTS, you can follow the instructions below:
+To install Hanasu, you can follow the instructions below:
 
 ```bash
-git clone https://github.com/yukiarimo/yunatts.git
-cd yunatts
+git clone https://github.com/yukiarimo/hanasu.git
+cd hanasu
 pip install -e .
 python -m unidic download
 ```
 
+You can download the pre-trained models and encoders from the HF: [Hanasu V1 Encoder](https://huggingface.co/yukiarimo/yuna-ai-hanasu-v1).
+
+### Requirements
+- Python 3.8+
+- PyTorch 1.9+
+- torchaudio 0.9+
+- transformers 4.9+
+- librosa 0.8+
+- unidic 1.0+
+- 4GB+ GPU memory (for inference)
+- 8GB+ GPU memory (for training)
+- Supported GPUs: NVIDIA and Apple Silicon
+
 ## Usage
+Hanasu can be used in two ways: CLI and Python API. The CLI is more user-friendly, while the Python API is more flexible.
 
 ### Language Support
-Languages supported by Yuna TTS:
+Languages supported by Hanasu TTS:
 
 - English (EN)
 - Spanish (ES)
@@ -35,96 +50,84 @@ Languages supported by Yuna TTS:
 - Chinese (ZH)
 - Japanese (JP)
 - Korean (KR)
+- Russian (RU)
+
+Additional languages can be added by transliterating the text to IPA.
 
 ### CLI
-You may use the YunaTTS CLI to interact with YunaTTS. The CLI may be invoked using either `yunatts` or `yuna`. Here are some examples:
+You may use the Hanasu CLI to interact with Hanasu. The CLI may be invoked using either `hanasu` or `hanasu`. Here are some examples:
 
 **Read English text:**
-
 ```bash
-yuna "Text to read" output.wav
+hanasu "Text to read" output.wav
 ```
 
 **Specify a language:**
-
 ```bash
-yuna "Text to read" output.wav --language EN
+hanasu "Text to read" output.wav --language EN
 ```
 
 **Specify a speaker:**
-
 ```bash
-yuna "Text to read" output.wav --language EN --speaker EN-US
-yuna "Text to read" output.wav --language EN --speaker EN-AU
+hanasu "Text to read" output.wav --language EN --speaker Yuna
 ```
 
 **Specify a speed:**
-
 ```bash
-yuna "Text to read" output.wav --language EN --speaker EN-US --speed 1.5
-yuna "Text to read" output.wav --speed 1.5
+hanasu "Text to read" output.wav --language EN --speaker Yuna --speed 1.5
 ```
 
 **Load from a file:**
-
 ```bash
-yuna file.txt out.wav --file
+hanasu file.txt out.wav --file
 ```
 
 ### Python API
+You may also use the Hanasu Python API to interact with Hanasu. Here is an example:
 
 ```python
-from yuna.api import TTS
+from hanasu.api import TTS
 
 # Speed is adjustable
-speed = 1.0
+text = "In a quiet neighborhood just west of Embassy Row in Washington, there exists a medieval-style walled garden whose roses, it is said, spring from twelfth-century plants. The garden's Carderock gazebo, known as Shadow House, sits elegantly amid meandering pathways of stones dug from George Washington's private quarry."
+model = TTS(language='EN', device='cpu', use_hf=False, config_path="config.json", ckpt_path="G_100.pth")
+model.tts_to_file(text=text, speaker_id=0, output_path='en-default.wav', sdp_ratio=0.8, noise_scale=0, noise_scale_w=0.2, speed=1.0, quiet=True)
 
-# CPU is sufficient for real-time inference.
-# You can set it manually to 'cpu' or 'cuda' or 'cuda:0' or 'mps'
-device = 'auto' # Will automatically use GPU if available
-language = 'EN'
+"""
+def tts_to_file(
+ text,          # The input text to convert to speech
+ speaker_id,    # ID of the speaker voice to use
+ output_path,   # Where to save the audio file (optional)
+ sdp_ratio,     # Controls the "cleanness" of the voice (0.0-1.0)
+ noise_scale,   # Controls the variation in voice (0.0-1.0)
+ noise_scale_w, # Controls the variation in speaking pace (0.0-1.0)
+ speed,         # Speaking speed multiplier (1.0 = normal speed)
+ pbar,          # Custom progress bar (optional)
+ format,        # Audio format to save as (optional)
+ position,      # Progress bar position (optional)
+ quiet,         # Suppress progress output if True
+):
 
-# English 
-text = "Did you ever hear a folk tale about a giant turtle?"
-model = TTS(language=language, device=device)
-output_path = 'en.wav'
-model.tts_to_file(text, 0, output_path, speed=speed)
+- Higher sdp_ratio: Cleaner but more robotic voice
+- Higher noise_scale: More variation/expressiveness but potentially less stable
+- Higher noise_scale_w: More varied pacing but could sound unnatural 
+"""
 ```
 
 ## Training
-Before training, please install YunaTTS in dev mode and go to the `yuna` folder.
+To train Hanasu or its encoder, follow the steps in the `notebooks` directory. The training process is easy to follow and can be done on a single GPU. The training data is not included in this repository, but you can use your own data or download a dataset from a TTS dataset repository.
 
-```
-pip install -e .
-cd yuna
-```
+> Note 1: If you want to fine-tune the TTS model instead of training from scratch, place the pre-trained models into the `hanasu/logs/Yuna` directory.
 
-### Data Preparation
-To train a TTS model, we need to prepare the audio files and a metadata file.
+> Note 2: If you plan to fine-tune or change the encoder, you must retrain the TTS models from scratch.
 
-```
-path/to/audio_001.wav|<speaker_name>|<language_code>|<text_001>
-path/to/audio_002.wav|<speaker_name>|<language_code>|<text_002>
-```
+> Note 3: The TTS model has not been released yet, but you can train it yourself using the provided encoder. It will be released in the future once we have donations to support the project.
 
-We can then run the preprocessing code:
+## Contributing
+Contributions are welcome! Please open an issue in the repository for feature requests, bug reports, or other issues. If you want to contribute code, please fork the repository and submit a pull request.
 
-```
-python preprocess_text.py --metadata data/example/metadata.list 
-```
+## License
+Hanasu is distributed under the OSI Approved Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License. See `LICENSE` for more information.
 
-A config file `data/example/config.json` will be generated. Feel free to edit some hyper-parameters in that config file (for example, you may decrease the batch size if you have encountered the CUDA out-of-memory issue).
-
-### Training
-The training can be launched by:
-
-```
-bash train.sh <path/to/config.json> <num_of_gpus>
-```
-
-### Inference
-Simply run:
-
-```
-python infer.py --text "<some text here>" -m /path/to/checkpoint/G_<iter>.pth -o <output_dir>
-```
+## Contact
+For questions or support, please open an issue in the repository or contact the author at yukiarimo@gmail.com.

@@ -2,13 +2,13 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from yuna import commons
-from yuna import modules
-from yuna import attentions
+from hanasu import commons
+from hanasu import modules
+from hanasu import attentions
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from yuna.commons import init_weights, get_padding
-import yuna.monotonic_align as monotonic_align
+from hanasu.commons import init_weights, get_padding
+import hanasu.monotonic_align as monotonic_align
 
 class DurationDiscriminator(nn.Module):
     def __init__(

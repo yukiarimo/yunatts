@@ -1,6 +1,6 @@
 if __name__ == '__main__':
 
-    from yuna.api import TTS
+    from hanasu.api import TTS
     device = 'auto'
     models = {
         'EN': TTS(language='EN', device=device),

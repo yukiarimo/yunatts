@@ -1,4 +1,4 @@
-from yuna.text.cyrillic import transliterate
+from hanasu.text.cyrillic import transliterate
 
 def process_list_file(input_file, output_file):
     """
@@ -33,8 +33,8 @@ def process_list_file(input_file, output_file):
             f.write(line + '\n')
 
 def main():
-    input_file = '/Users/yuki/Documents/Github/yunatts/yuna/configs/Yuna/ru.list'
-    output_file = '/Users/yuki/Documents/Github/yunatts/yuna/configs/Yuna/ru_transliterated.list'
+    input_file = 'input.list'
+    output_file = 'output.list'
     
     try:
         process_list_file(input_file, output_file)

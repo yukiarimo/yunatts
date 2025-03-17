@@ -1,6 +1,6 @@
 import os
 import click
-from yuna.api import TTS
+from hanasu.api import TTS
 
 @click.command()
 @click.option('--ckpt_path', '-m', type=str, default=None, help="Path to the checkpoint file")

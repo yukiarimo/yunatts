@@ -9,9 +9,9 @@ from scipy.io.wavfile import read
 import torch
 import torchaudio
 import librosa
-from yuna.text import cleaned_text_to_sequence, get_bert
-from yuna.text.cleaner import clean_text
-from yuna import commons
+from hanasu.text import cleaned_text_to_sequence, get_bert
+from hanasu.text.cleaner import clean_text
+from hanasu import commons
 MATPLOTLIB_FLAG = False
 logger = logging.getLogger(__name__)
 
