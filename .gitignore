@@ -9,3 +9,4 @@ build/
 *.zip
 *.wav
 hanasu/configs/Yuna/*
+tests/*

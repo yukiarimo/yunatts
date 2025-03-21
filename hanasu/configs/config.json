@@ -10,7 +10,7 @@
       0.9999
     ],
     "eps": 1e-09,
-    "batch_size": 19,
+    "batch_size": 35,
     "fp16_run": true,
     "lr_decay": 0.9998,
     "segment_size": 23552,
@@ -35,9 +35,9 @@
     "n_speakers": 3,
     "cleaned_text": true,
     "spk2id": {
-      "Yunaja": 0,
-      "Yuna": 1,
-      "Yunaru": 2
+      "Yuna": 0,
+      "Yunaru": 1,
+      "Yunaja": 2
     }
   },
   "model": {
