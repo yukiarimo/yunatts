@@ -92,60 +92,60 @@ def merge_short_sentences_zh(sens):
     return sens_out
 
 def txtsplit(text, desired_length=100, max_length=200):
-    """Split text it into chunks of a desired length trying to keep sentences intact."""
-    text = re.sub(r'\n\n+', '\n', text)
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'[""]', '"', text)
-    text = re.sub(r'([,.?!])', r'\1 ', text)
-    text = re.sub(r'\s+', ' ', text)
+    """
+    Split text into chunks based on simple punctuation rules.
+    Only splits on periods, exclamation marks, question marks, and ellipses.
     
-    rv = []
-    in_quote = False
+    Args:
+        text (str): The text to split
+        min_length (int): Minimum length for a sentence to be considered standalone
+        
+    Returns:
+        list: List of text chunks
+    """
+    min_length = 10
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    # Handle ellipses first (to avoid confusion with periods)
+    text = re.sub(r'\.\.\.', ' ELLIPSIS_MARKER ', text)
+    
+    # Add spaces after punctuation for easier splitting
+    text = re.sub(r'([.!?])', r'\1 SENTENCE_BREAK ', text)
+    
+    # Split by the markers we inserted
+    raw_sentences = [s.strip() for s in text.split('SENTENCE_BREAK')]
+    
+    # Restore ellipses
+    raw_sentences = [s.replace('ELLIPSIS_MARKER', '...') for s in raw_sentences]
+
+    # Replace " - " with a comma
+    raw_sentences = [s.replace(' - ', ', ') for s in raw_sentences]
+
+    # Replace "em dash" with a comma
+    raw_sentences = [s.replace('—', ', ') for s in raw_sentences]
+    
+    # Filter out empty sentences and merge short ones
+    sentences = []
     current = ""
-    split_pos = []
-    pos = -1
-    end_pos = len(text) - 1
-    def seek(delta):
-        nonlocal pos, in_quote, current
-        is_neg = delta < 0
-        for _ in range(abs(delta)):
-            if is_neg:
-                pos -= 1
-                current = current[:-1]
-            else:
-                pos += 1
-                current += text[pos]
-            if text[pos] == '"':
-                in_quote = not in_quote
-        return text[pos]
-    def peek(delta):
-        p = pos + delta
-        return text[p] if p < end_pos and p >= 0 else ""
-    def commit():
-        nonlocal rv, current, split_pos
-        rv.append(current)
-        current = ""
-        split_pos = []
-    while pos < end_pos:
-        c = seek(1)
-        if len(current) >= max_length:
-            if len(split_pos) > 0 and len(current) > (desired_length / 2):
-                d = pos - split_pos[-1]
-                seek(-d)
-            else:
-                while c not in '!?.\n ' and pos > 0 and len(current) > desired_length:
-                    c = seek(-1)
-            commit()
-        elif not in_quote and (c in '!?\n' or (c in '.,' and peek(1) in '\n ')):
-            while pos < len(text) - 1 and len(current) < max_length and peek(1) in '!?.':
-                c = seek(1)
-            split_pos.append(pos)
-            if len(current) >= desired_length:
-                commit()
-        elif in_quote and peek(1) == '"' and peek(2) in '\n ':
-            seek(2)
-            split_pos.append(pos)
-    rv.append(current)
-    rv = [s.strip() for s in rv]
-    rv = [s for s in rv if len(s) > 0 and not re.match(r'^[\s\.,;:!?]*$', s)]
-    return rv
+    
+    for sentence in raw_sentences:
+        if not sentence:  # Skip empty sentences
+            continue
+            
+        if len(current) == 0:
+            current = sentence
+        elif len(sentence) < min_length:
+            # If this sentence is too short, append it to the current one
+            current += " " + sentence
+        else:
+            # If we have accumulated content and the new sentence is long enough
+            if current:
+                sentences.append(current)
+            current = sentence
+    
+    # Don't forget to add the last sentence
+    if current:
+        sentences.append(current)
+        
+    return [s for s in sentences if s]  # Final filter for any empty strings
