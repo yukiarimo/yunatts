@@ -1,4 +1,4 @@
-import os 
+import os
 from setuptools import setup, find_packages
 from setuptools.command.develop import develop
 from setuptools.command.install import install
@@ -20,7 +20,7 @@ class PostDevelopCommand(develop):
 
 setup(
     name='hanasu',
-    version='1.0.0',
+    version='1.0.1',
     packages=find_packages(),
     include_package_data=True,
     install_requires=reqs,

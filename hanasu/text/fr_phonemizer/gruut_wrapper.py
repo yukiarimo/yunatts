@@ -209,16 +209,15 @@ if __name__ == "__main__":
         "\u2191",
         " ",
         "ɣ",
-        "ɡ", 
-        "r", 
-        "ɲ", 
-        "ʝ", 
+        "ɡ",
+        "r",
+        "ɲ",
+        "ʝ",
         "ʎ",
         "ː"
     ]
     with open('/home/xumin/workspace/VITS-Training-Multiling/230715_fr/metadata.txt', 'r') as f:
         lines = f.readlines()
-    
 
     used_sym = []
     not_existed_sym = []
@@ -238,13 +237,13 @@ if __name__ == "__main__":
                 if s not in used_sym:
                     # print(f'used char: {s}')
                     used_sym.append(s)
-    
+
     print(used_sym)
     print(not_existed_sym)
 
     with open('./text/fr_phonemizer/french_symbols.txt', 'w') as g:
         g.writelines(symbols + not_existed_sym)
-        
+
     with open('./text/fr_phonemizer/example_ipa.txt', 'w') as g:
         g.writelines(phonemes)
 

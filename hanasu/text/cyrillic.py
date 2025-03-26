@@ -161,7 +161,7 @@ TJ_CYR_TO_LAT_DICT[u"Ю"] = u"Û"
 TJ_CYR_TO_LAT_DICT[u"ю"] = u"û"
 TJ_CYR_TO_LAT_DICT[u"Я"] = u"Â"
 TJ_CYR_TO_LAT_DICT[u"я"] = u"â"
-# delete letters not used 
+# delete letters not used
 del TJ_CYR_TO_LAT_DICT[u"Ц"]
 del TJ_CYR_TO_LAT_DICT[u"ц"]
 del TJ_CYR_TO_LAT_DICT[u"Щ"]
@@ -172,8 +172,8 @@ del TJ_CYR_TO_LAT_DICT[u"ы"]
 # update the dict for the additional letters in the tajik cyrillic alphabet ( Ғ, Ӣ, Қ, Ӯ, Ҳ, Ҷ )
 TJ_CYR_TO_LAT_DICT.update({
     u"Ғ": u"Ǧ", u"ғ": u"ǧ",
-    u"Ӣ": u"Ī", u"ӣ": u"ī", 
-    u"Қ": u"Q", u"қ": u"q", 
+    u"Ӣ": u"Ī", u"ӣ": u"ī",
+    u"Қ": u"Q", u"қ": u"q",
     u"Ӯ": u"Ū", u"ӯ": u"ū",
     u"Ҳ": u"Ḩ", u"ҳ": u"ḩ",
     u"Ҷ": u"Ç", u"ҷ": u"ç"
@@ -206,7 +206,7 @@ BG_CYR_TO_LAT_DICT[u"Ю"] = u"YU"
 BG_CYR_TO_LAT_DICT[u"ю"] = u"yu"
 BG_CYR_TO_LAT_DICT[u"Я"] = u"YA"
 BG_CYR_TO_LAT_DICT[u"я"] = u"ya"
-# The following letters use the pre-2012 "Andreichin" system for lettering, 
+# The following letters use the pre-2012 "Andreichin" system for lettering,
 BG_CYR_TO_LAT_DICT[u"Ъ"] = u"Ă"
 BG_CYR_TO_LAT_DICT[u"ъ"] = u"ă"
 BG_CYR_TO_LAT_DICT[u"Ь"] = u"J"
@@ -489,7 +489,7 @@ def to_cyrillic(string_to_transliterate, lang_code='sr'):
                 index += 1
                 c += c_plus_1
 
-                # In Bulgarian, the letter "щ" is represented by three latin letters: "sht", 
+                # In Bulgarian, the letter "щ" is represented by three latin letters: "sht",
                 # so we need this logic to support the third latin letter
                 if lang_code == 'bg' and \
                         index + 2 <= length_of_string_to_transliterate - 1 and \
@@ -497,7 +497,7 @@ def to_cyrillic(string_to_transliterate, lang_code='sr'):
                         string_to_transliterate[index + 1] in u'Tt':
                     index += 1
                     c += string_to_transliterate[index]
-                    
+
                 # Similarly in Russian, the letter "щ" шы represented by "shh".
                 if lang_code == 'ru' and \
                         index + 2 <= length_of_string_to_transliterate - 1 and \
@@ -535,7 +535,6 @@ def to_cyrillic(string_to_transliterate, lang_code='sr'):
 
         return __encode_utf8(cyrillic_str)
 
-      
 def supported():
     ''' Returns list of supported languages, sorted alphabetically.
     :return:
@@ -545,33 +544,33 @@ def supported():
 def transliterate(text, source='en', target='ru'):
     """
     Transliterate text between latin and cyrillic alphabets.
-    
+
     Args:
         text (str): Text to transliterate
         source (str): Source language code ('en' for Latin or country code for Cyrillic)
         target (str): Target language code ('en' for Latin or country code for Cyrillic)
-    
+
     Returns:
         str: Transliterated text
-        
+
     Examples:
         >>> transliterate("Привет", source="ru", target="en")
         'Privet'
-        >>> transliterate("Hello", source="en", target="ru") 
+        >>> transliterate("Hello", source="en", target="ru")
         'Хелло'
     """
-    
+
     source = source.lower()
     target = target.lower()
-    
+
     # Validate languages are supported
     supported_langs = set(TRANSLIT_DICT.keys()) | {'en'}
     if source not in supported_langs or target not in supported_langs:
         raise ValueError(f"Unsupported language code. Supported codes: {', '.join(supported_langs)}")
-    
+
     if source == target:
         return text
-        
+
     if source == 'en':
         return to_cyrillic(text, lang_code=target)
     elif target == 'en':

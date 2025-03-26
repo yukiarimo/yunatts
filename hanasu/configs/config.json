@@ -21,8 +21,8 @@
     "skip_optimizer": true
   },
   "data": {
-    "training_files": "/Users/yuki/Documents/Github/hanasu/hanasu/configs/Yuna/train.list",
-    "validation_files": "/Users/yuki/Documents/Github/hanasu/hanasu/configs/Yuna/val.list",
+    "training_files": "/content/Yuna/train.list",
+    "validation_files": "/content/Yuna/val.list",
     "max_wav_value": 32768.0,
     "sampling_rate": 48000,
     "filter_length": 2048,

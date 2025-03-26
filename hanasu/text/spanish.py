@@ -69,7 +69,7 @@ def g2p(text, pad_start_end=True, tokenized=None):
             ph_groups.append([t])
         else:
             ph_groups[-1].append(t.replace("#", ""))
-    
+
     phones = []
     tones = []
     word2ph = []
@@ -82,7 +82,7 @@ def g2p(text, pad_start_end=True, tokenized=None):
             phone_list = ['UNK']
         else:
             phone_list = list(filter(lambda p: p != " ", es_to_ipa.es2ipa(w)))
-        
+
         for ph in phone_list:
             phones.append(ph)
             tones.append(0)

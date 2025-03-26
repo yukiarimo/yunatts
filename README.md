@@ -82,6 +82,50 @@ hanasu "Text to read" output.wav --language EN --speaker Yuna --speed 1.5
 hanasu file.txt out.wav --file
 ```
 
+**Fuse models:**
+```bash
+# Basic Model Fusion: To fuse two models with default equal weighting:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 \
+    --model_steps 8600 108000 \
+    --output_dir /path/to/output \
+    --fallback_to_non_zero
+```
+
+**Fuse models with custom weighting:**
+```bash
+# Custom Model Fusion: Advanced Component-Specific Fusion with Three Models:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 /path/to/model3 \
+    --model_steps 8600 108000 21600 \
+    --output_dir /path/to/output \
+    --encoder_ratios 0.7 0.1 0.2 \
+    --decoder_ratios 0.4 0.3 0.3 \
+    --flow_attention_ratios 0.3 0.5 0.2 \
+    --flow_other_ratios 0.3 0.4 0.3 \
+    --duration_ratios 0.4 0.1 0.5 \
+    --other_ratios 0.4 0.2 0.4 \
+    --fallback_to_non_zero
+```
+
+**Fusion and Audio Generation:**
+```bash
+# Generate Audio from Fused Model:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 \
+    --model_steps 8600 108000 \
+    --output_dir /path/to/output \
+    --config_path /path/to/config.json \
+    --generate_audio \
+    --text "This is a test of the fused model synthesis." \
+    --speaker_id 0 \
+    --device cuda \
+    --sdp_ratio 0.2 \
+    --noise_scale 0.6 \
+    --noise_scale_w 0.8 \
+    --speed 1.0
+```
+
 ### Python API
 You may also use the Hanasu Python API to interact with Hanasu. Here is an example:
 
@@ -110,7 +154,7 @@ def tts_to_file(
 
 - Higher sdp_ratio: Cleaner but more robotic voice
 - Higher noise_scale: More variation/expressiveness but potentially less stable
-- Higher noise_scale_w: More varied pacing but could sound unnatural 
+- Higher noise_scale_w: More varied pacing but could sound unnatural
 """
 ```
 

@@ -2,8 +2,6 @@ import os
 import re
 import cn2an
 from pypinyin import lazy_pinyin, Style
-
-# from text.symbols import punctuation
 from .symbols import language_tone_start_map
 from .tone_sandhi import ToneSandhi
 from .english import g2p as g2p_en
@@ -206,7 +204,6 @@ def _g2p_v2(segments):
         texts = text.split(spliter)
         texts = [t for t in texts if len(t) > 0]
 
-        
         for text in texts:
             if re.match('[a-zA-Z\s]+', text):
                 # english
@@ -223,23 +220,3 @@ def _g2p_v2(segments):
                 tones_list += tones_zh
                 word2ph += word2ph_zh
     return phones_list, tones_list, word2ph
-
-    
-
-if __name__ == "__main__":
-    # from text.chinese_bert import get_bert_feature
-
-    text = "NFT啊！chemistry 但是《原神》是由,米哈\游自主，  [研发]的一款全.新开放世界.冒险游戏"
-    text = '我最近在学习machine learning，希望能够在未来的artificial intelligence领域有所建树。'
-    text = '今天下午，我们准备去shopping mall购物，然后晚上去看一场movie。'
-    text = '我们现在 also 能够 help 很多公司 use some machine learning 的 algorithms 啊!'
-    text = text_normalize(text)
-    print(text)
-    phones, tones, word2ph = g2p(text, impl='v2')
-    bert = get_bert_feature(text, word2ph, device='cuda:0')
-    print(phones)
-    import pdb; pdb.set_trace()
-
-# # 示例用法
-# text = "这是一个示例文本：,你好！这是一个测试...."
-# print(g2p_paddle(text))  # 输出: 这是一个示例文本你好这是一个测试

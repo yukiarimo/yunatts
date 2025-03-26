@@ -95,27 +95,27 @@ def txtsplit(text, desired_length=100, max_length=200):
     """
     Split text into chunks based on simple punctuation rules.
     Only splits on periods, exclamation marks, question marks, and ellipses.
-    
+
     Args:
         text (str): The text to split
         min_length (int): Minimum length for a sentence to be considered standalone
-        
+
     Returns:
         list: List of text chunks
     """
     min_length = 10
     # Normalize whitespace
     text = re.sub(r'\s+', ' ', text).strip()
-    
+
     # Handle ellipses first (to avoid confusion with periods)
     text = re.sub(r'\.\.\.', ' ELLIPSIS_MARKER ', text)
-    
+
     # Add spaces after punctuation for easier splitting
     text = re.sub(r'([.!?])', r'\1 SENTENCE_BREAK ', text)
-    
+
     # Split by the markers we inserted
     raw_sentences = [s.strip() for s in text.split('SENTENCE_BREAK')]
-    
+
     # Restore ellipses
     raw_sentences = [s.replace('ELLIPSIS_MARKER', '...') for s in raw_sentences]
 
@@ -124,15 +124,15 @@ def txtsplit(text, desired_length=100, max_length=200):
 
     # Replace "em dash" with a comma
     raw_sentences = [s.replace('—', ', ') for s in raw_sentences]
-    
+
     # Filter out empty sentences and merge short ones
     sentences = []
     current = ""
-    
+
     for sentence in raw_sentences:
         if not sentence:  # Skip empty sentences
             continue
-            
+
         if len(current) == 0:
             current = sentence
         elif len(sentence) < min_length:
@@ -143,9 +143,9 @@ def txtsplit(text, desired_length=100, max_length=200):
             if current:
                 sentences.append(current)
             current = sentence
-    
+
     # Don't forget to add the last sentence
     if current:
         sentences.append(current)
-        
+
     return [s for s in sentences if s]  # Final filter for any empty strings

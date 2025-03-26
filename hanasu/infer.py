@@ -10,10 +10,10 @@ from hanasu.api import TTS
 def main(ckpt_path, text, language, output_dir):
     if ckpt_path is None:
         raise ValueError("The model_path must be specified")
-    
+
     config_path = os.path.join(os.path.dirname(ckpt_path), 'config.json')
     model = TTS(language=language, config_path=config_path, ckpt_path=ckpt_path)
-    
+
     for spk_name, spk_id in model.hps.data.spk2id.items():
         save_path = f'{output_dir}/{spk_name}/output.wav'
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

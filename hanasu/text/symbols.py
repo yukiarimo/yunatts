@@ -228,7 +228,7 @@ es_symbols = [
     ]
 num_es_tones = 1
 
-# French 
+# French
 fr_symbols = [
     "\u0303",
     "œ",
@@ -241,14 +241,14 @@ fr_symbols = [
 ]
 num_fr_tones = 1
 
-# German 
+# German
 de_symbols = [
     "ʏ",
     "̩"
   ]
 num_de_tones = 1
 
-# Russian 
+# Russian
 ru_symbols = [
     "ɭ",
     "ʲ",

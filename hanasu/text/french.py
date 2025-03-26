@@ -29,7 +29,7 @@ def g2p(text, pad_start_end=True, tokenized=None):
             ph_groups.append([t])
         else:
             ph_groups[-1].append(t.replace("#", ""))
-    
+
     phones = []
     tones = []
     word2ph = []
@@ -42,7 +42,7 @@ def g2p(text, pad_start_end=True, tokenized=None):
             phone_list = ['UNK']
         else:
             phone_list = list(filter(lambda p: p != " ", fr_to_ipa.fr2ipa(w)))
-        
+
         for ph in phone_list:
             phones.append(ph)
             tones.append(0)
@@ -71,7 +71,6 @@ if __name__ == "__main__":
     phoneme = fr_to_ipa.fr2ipa(text)
     print(phoneme)
 
-    
     from TTS.tts.utils.text.phonemizers.multi_phonemizer import MultiPhonemizer
     from text.cleaner_multiling import unicleaners
 
