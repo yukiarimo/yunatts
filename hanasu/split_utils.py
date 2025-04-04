@@ -1,11 +1,8 @@
 import re
 import re
 
-def split_sentence(text, min_len=10, language_str='EN'):
-    if language_str in ['EN', 'FR', 'ES', 'SP']:
-        sentences = split_sentences_latin(text, min_len=min_len)
-    else:
-        sentences = split_sentences_zh(text, min_len=min_len)
+def split_sentence(text, min_len=10):
+    sentences = split_sentences_latin(text, min_len=min_len)
     return sentences
 
 def split_sentences_latin(text, min_len=10):
@@ -15,30 +12,6 @@ def split_sentences_latin(text, min_len=10):
     text = re.sub('[‘’]', "'", text)
     text = re.sub(r"[\<\>\(\)\[\]\"\«\»]+", "", text)
     return [item.strip() for item in txtsplit(text, 256, 512) if item.strip()]
-
-def split_sentences_zh(text, min_len=10):
-    text = re.sub('[。！？；]', '.', text)
-    text = re.sub('[，]', ',', text)
-    # 将文本中的换行符、空格和制表符替换为空格
-    text = re.sub('[\n\t ]+', ' ', text)
-    # 在标点符号后添加一个空格
-    text = re.sub('([,.!?;])', r'\1 $#!', text)
-    # 分隔句子并去除前后空格
-    # sentences = [s.strip() for s in re.split('(。|！|？|；)', text)]
-    sentences = [s.strip() for s in text.split('$#!')]
-    if len(sentences[-1]) == 0: del sentences[-1]
-
-    new_sentences = []
-    new_sent = []
-    count_len = 0
-    for ind, sent in enumerate(sentences):
-        new_sent.append(sent)
-        count_len += len(sent)
-        if count_len > min_len or ind == len(sentences) - 1:
-            count_len = 0
-            new_sentences.append(' '.join(new_sent))
-            new_sent = []
-    return merge_short_sentences_zh(new_sentences)
 
 def merge_short_sentences_en(sens):
     """Avoid short sentences by merging them with the following sentence.

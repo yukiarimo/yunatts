@@ -47,19 +47,19 @@ class DurationDiscriminator(nn.Module):
         self.output_layer = nn.Sequential(nn.Linear(filter_channels, 1), nn.Sigmoid())
 
     def forward_probability(self, x, x_mask, dur, g=None):
-        dur = self.dur_proj(dur)
-        x = torch.cat([x, dur], dim=1)
-        x = self.pre_out_conv_1(x * x_mask)
-        x = torch.relu(x)
-        x = self.pre_out_norm_1(x)
-        x = self.drop(x)
-        x = self.pre_out_conv_2(x * x_mask)
-        x = torch.relu(x)
-        x = self.pre_out_norm_2(x)
-        x = self.drop(x)
-        x = x * x_mask
-        x = x.transpose(1, 2)
-        output_prob = self.output_layer(x)
+        dur_proj = self.dur_proj(dur)
+        x_combined = torch.cat([x, dur_proj], dim=1)
+        x_conv1 = self.pre_out_conv_1(x_combined * x_mask)
+        x_relu1 = F.relu(x_conv1)
+        x_norm1 = self.pre_out_norm_1(x_relu1)
+        x_drop1 = self.drop(x_norm1)
+        x_conv2 = self.pre_out_conv_2(x_drop1 * x_mask)
+        x_relu2 = F.relu(x_conv2)
+        x_norm2 = self.pre_out_norm_2(x_relu2)
+        x_drop2 = self.drop(x_norm2)
+        x_masked = x_drop2 * x_mask
+        x_transposed = x_masked.permute(0, 2, 1)  # Use permute instead of transpose
+        output_prob = self.output_layer(x_transposed)
         return output_prob
 
     def forward(self, x, x_mask, dur_r, dur_hat, g=None):
@@ -93,7 +93,7 @@ class TransformerCouplingBlock(nn.Module):
         n_layers,
         kernel_size,
         p_dropout,
-        n_flows=4,
+        n_flows=8,
         gin_channels=0,
         share_parameter=False,
     ):
@@ -155,7 +155,7 @@ class StochasticDurationPredictor(nn.Module):
         filter_channels,
         kernel_size,
         p_dropout,
-        n_flows=4,
+        n_flows=8,
         gin_channels=0,
     ):
         super().__init__()
@@ -312,14 +312,9 @@ class TextEncoder(nn.Module):
         kernel_size,
         p_dropout,
         gin_channels=0,
-        num_languages=None,
-        num_tones=None,
     ):
         super().__init__()
-        if num_languages is None:
-            from text import num_languages
-        if num_tones is None:
-            from text import num_tones
+        # We don't use language and tone embeddings anymore
         self.n_vocab = n_vocab
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
@@ -331,12 +326,8 @@ class TextEncoder(nn.Module):
         self.gin_channels = gin_channels
         self.emb = nn.Embedding(n_vocab, hidden_channels)
         nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
-        self.tone_emb = nn.Embedding(num_tones, hidden_channels)
-        nn.init.normal_(self.tone_emb.weight, 0.0, hidden_channels**-0.5)
-        self.language_emb = nn.Embedding(num_languages, hidden_channels)
-        nn.init.normal_(self.language_emb.weight, 0.0, hidden_channels**-0.5)
-        self.bert_proj = nn.Conv1d(1024, hidden_channels, 1)
-        self.ja_bert_proj = nn.Conv1d(768, hidden_channels, 1)
+        # Replace BERT projections with Llama embedding projection
+        self.llama_proj = nn.Conv1d(2048, hidden_channels, 1)  # Llama-3.2-1B embedding size is 8192
 
         self.encoder = attentions.Encoder(
             hidden_channels,
@@ -349,15 +340,12 @@ class TextEncoder(nn.Module):
         )
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    def forward(self, x, x_lengths, tone, language, bert, ja_bert, g=None):
-        bert_emb = self.bert_proj(bert).transpose(1, 2)
-        ja_bert_emb = self.ja_bert_proj(ja_bert).transpose(1, 2)
+    def forward(self, x, x_lengths, llama_emb=None, g=None):
+        # We'll keep parameters for backward compatibility but won't use them
+        llama_emb_proj = self.llama_proj(llama_emb).transpose(1, 2) if llama_emb is not None else 0
         x = (
             self.emb(x)
-            + self.tone_emb(tone)
-            + self.language_emb(language)
-            + bert_emb
-            + ja_bert_emb
+            + llama_emb_proj
         ) * math.sqrt(
             self.hidden_channels
         )  # [b, t, h]
@@ -380,7 +368,7 @@ class ResidualCouplingBlock(nn.Module):
         kernel_size,
         dilation_rate,
         n_layers,
-        n_flows=4,
+        n_flows=8,
         gin_channels=0,
     ):
         super().__init__()
@@ -436,7 +424,16 @@ class PosteriorEncoder(nn.Module):
         self.n_layers = n_layers
         self.gin_channels = gin_channels
 
-        self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
+        # Check if we're using stereo (in_channels > standard spectrogram size)
+        self.is_stereo = in_channels > 1025
+        
+        if self.is_stereo:
+            # For stereo, we double the input channels
+            self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
+        else:
+            # Original mono version
+            self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
+            
         self.enc = modules.WN(
             hidden_channels,
             kernel_size,
@@ -447,6 +444,12 @@ class PosteriorEncoder(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, x, x_lengths, g=None, tau=1.0):
+        # Handle 4D input (batch, stereo_channels, frequency_bins, sequence_length)
+        if x.dim() == 4:
+            b, c, f, t = x.size()
+            # Reshape to combine stereo and frequency dimensions
+            x = x.reshape(b, c * f, t)
+            
         x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(
             x.dtype
         )
@@ -468,10 +471,12 @@ class Generator(torch.nn.Module):
         upsample_initial_channel,
         upsample_kernel_sizes,
         gin_channels=0,
+        channels=1,  # Number of output channels (1 for mono, 2 for stereo)
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
+        self.channels = channels
         self.conv_pre = Conv1d(
             initial_channel, upsample_initial_channel, 7, 1, padding=3
         )
@@ -499,7 +504,8 @@ class Generator(torch.nn.Module):
             ):
                 self.resblocks.append(resblock(ch, k, d))
 
-        self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
+        # Modified to support stereo output (channels parameter)
+        self.conv_post = Conv1d(ch, channels, 7, 1, padding=3, bias=False)
         self.ups.apply(init_weights)
 
         if gin_channels != 0:
@@ -534,7 +540,7 @@ class Generator(torch.nn.Module):
             layer.remove_weight_norm()
 
 class DiscriminatorP(torch.nn.Module):
-    def __init__(self, period, kernel_size=5, stride=3, use_spectral_norm=False):
+    def __init__(self, period, kernel_size=5, stride=3, use_spectral_norm=False, channels=1):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
@@ -543,7 +549,7 @@ class DiscriminatorP(torch.nn.Module):
             [
                 norm_f(
                     Conv2d(
-                        1,
+                        channels,
                         32,
                         (kernel_size, 1),
                         (stride, 1),
@@ -612,12 +618,12 @@ class DiscriminatorP(torch.nn.Module):
         return x, fmap
 
 class DiscriminatorS(torch.nn.Module):
-    def __init__(self, use_spectral_norm=False):
+    def __init__(self, use_spectral_norm=False, channels=1):
         super(DiscriminatorS, self).__init__()
         norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
-                norm_f(Conv1d(1, 16, 15, 1, padding=7)),
+                norm_f(Conv1d(channels, 16, 15, 1, padding=7)),
                 norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
                 norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
                 norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
@@ -641,15 +647,13 @@ class DiscriminatorS(torch.nn.Module):
         return x, fmap
 
 class MultiPeriodDiscriminator(torch.nn.Module):
-    def __init__(self, use_spectral_norm=False):
+    def __init__(self, use_spectral_norm=False, channels=1):
         super(MultiPeriodDiscriminator, self).__init__()
         periods = [2, 3, 5, 7, 11]
-
-        discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
-        discs = discs + [
-            DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
-        ]
-        self.discriminators = nn.ModuleList(discs)
+        self.discriminators = nn.ModuleList([
+            DiscriminatorP(period, use_spectral_norm=use_spectral_norm, channels=channels) 
+            for period in periods
+        ])
 
     def forward(self, y, y_hat):
         y_d_rs = []
@@ -759,11 +763,11 @@ class SynthesizerTrn(nn.Module):
         use_sdp=True,
         n_flow_layer=4,
         n_layers_trans_flow=6,
+        mas_noise_scale_initial=1.0,
+        noise_scale_delta=0.0,
         flow_share_parameter=False,
         use_transformer_flow=True,
         use_vc=False,
-        num_languages=None,
-        num_tones=None,
         norm_refenc=False,
         **kwargs
     ):
@@ -783,22 +787,22 @@ class SynthesizerTrn(nn.Module):
         self.upsample_rates = upsample_rates
         self.upsample_initial_channel = upsample_initial_channel
         self.upsample_kernel_sizes = upsample_kernel_sizes
-        self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
-        self.n_layers_trans_flow = n_layers_trans_flow
-        self.use_spk_conditioned_encoder = kwargs.get(
-            "use_spk_conditioned_encoder", True
-        )
+        self.segment_size = segment_size
+        self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", True)
+        
+        # Handle audio channels for stereo
+        self.channels = kwargs.get("channels", 1)  # Default to mono if not specified
+        spec_channels_with_channels = spec_channels
+        if self.channels == 2:  # For stereo
+            spec_channels_with_channels = spec_channels * 2
+            
+        self.mas_noise_scale = mas_noise_scale_initial
+        self.current_mas_noise_scale = mas_noise_scale_initial  # Add this line to initialize the current_mas_noise_scale
+        self.noise_scale_delta = noise_scale_delta
         self.use_sdp = use_sdp
-        self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", False)
-        self.mas_noise_scale_initial = kwargs.get("mas_noise_scale_initial", 0.01)
-        self.noise_scale_delta = kwargs.get("noise_scale_delta", 2e-6)
-        self.current_mas_noise_scale = self.mas_noise_scale_initial
-        if self.use_spk_conditioned_encoder and gin_channels > 0:
-            self.enc_gin_channels = gin_channels
-        else:
-            self.enc_gin_channels = 0
+
         self.enc_p = TextEncoder(
             n_vocab,
             inter_channels,
@@ -808,9 +812,18 @@ class SynthesizerTrn(nn.Module):
             n_layers,
             kernel_size,
             p_dropout,
-            gin_channels=self.enc_gin_channels,
-            num_languages=num_languages,
-            num_tones=num_tones,
+            gin_channels=gin_channels,
+        )
+        
+        # Update posterior encoder to handle stereo if needed
+        self.enc_q = PosteriorEncoder(
+            spec_channels_with_channels,  # Use adjusted spec channels for stereo
+            inter_channels,
+            hidden_channels,
+            5,
+            1,
+            16,
+            gin_channels=gin_channels,
         )
         self.dec = Generator(
             inter_channels,
@@ -821,15 +834,7 @@ class SynthesizerTrn(nn.Module):
             upsample_initial_channel,
             upsample_kernel_sizes,
             gin_channels=gin_channels,
-        )
-        self.enc_q = PosteriorEncoder(
-            spec_channels,
-            inter_channels,
-            hidden_channels,
-            5,
-            1,
-            16,
-            gin_channels=gin_channels,
+            channels=self.channels,  # Pass channels to the generator
         )
         if use_transformer_flow:
             self.flow = TransformerCouplingBlock(
@@ -866,7 +871,7 @@ class SynthesizerTrn(nn.Module):
             self.ref_enc = ReferenceEncoder(spec_channels, gin_channels, layernorm=norm_refenc)
         self.use_vc = use_vc
 
-    def forward(self, x, x_lengths, y, y_lengths, sid, tone, language, bert, ja_bert):
+    def forward(self, x, x_lengths, y, y_lengths, sid, llama_emb):
         if self.n_speakers > 0:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
@@ -876,7 +881,7 @@ class SynthesizerTrn(nn.Module):
         else:
             g_p = g
         x, m_p, logs_p, x_mask = self.enc_p(
-            x, x_lengths, tone, language, bert, ja_bert, g=g_p
+            x, x_lengths, llama_emb, g=g_p
         )
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
         z_p = self.flow(z, y_mask, g=g)
@@ -949,10 +954,7 @@ class SynthesizerTrn(nn.Module):
         x,
         x_lengths,
         sid,
-        tone,
-        language,
-        bert,
-        ja_bert,
+        llama_emb=None,
         noise_scale=0.667,
         length_scale=1,
         noise_scale_w=0.8,
@@ -973,7 +975,7 @@ class SynthesizerTrn(nn.Module):
         else:
             g_p = g
         x, m_p, logs_p, x_mask = self.enc_p(
-            x, x_lengths, tone, language, bert, ja_bert, g=g_p
+            x, x_lengths, llama_emb, g=g_p
         )
         logw = self.sdp(x, x_mask, g=g, reverse=True, noise_scale=noise_scale_w) * (
             sdp_ratio

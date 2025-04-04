@@ -9,49 +9,39 @@ from scipy.io.wavfile import read
 import torch
 import torchaudio
 import librosa
-from hanasu.text import cleaned_text_to_sequence, get_bert
+from hanasu.text import cleaned_text_to_sequence
 from hanasu.text.cleaner import clean_text
 from hanasu import commons
 MATPLOTLIB_FLAG = False
 logger = logging.getLogger(__name__)
 
-def get_text_for_tts_infer(text, language_str, hps, device, symbol_to_id=None):
-    norm_text, phone, tone, word2ph = clean_text(text, language_str)
-    phone, tone, language = cleaned_text_to_sequence(phone, tone, language_str, symbol_to_id)
-
-    if hps.data.add_blank:
-        phone = commons.intersperse(phone, 0)
-        tone = commons.intersperse(tone, 0)
-        language = commons.intersperse(language, 0)
-        for i in range(len(word2ph)):
-            word2ph[i] = word2ph[i] * 2
-        word2ph[0] += 1
-
-    if getattr(hps.data, "disable_bert", False):
-        bert = torch.zeros(1024, len(phone))
-        ja_bert = torch.zeros(768, len(phone))
-    else:
-        bert = get_bert(norm_text, word2ph, language_str, device)
-        del word2ph
-        assert bert.shape[-1] == len(phone), phone
-
-        if language_str == "ZH":
-            bert = bert
-            ja_bert = torch.zeros(768, len(phone))
-        elif language_str in ["JP", "EN", "ZH_MIX_EN", 'KR', 'SP', 'ES', 'FR', 'DE', 'RU']:
-            ja_bert = bert
-            bert = torch.zeros(1024, len(phone))
-        else:
-            raise NotImplementedError()
-
-    assert bert.shape[-1] == len(
-        phone
-    ), f"Bert seq len {bert.shape[-1]} != {len(phone)}"
-
-    phone = torch.LongTensor(phone)
-    tone = torch.LongTensor(tone)
-    language = torch.LongTensor(language)
-    return bert, ja_bert, phone, tone, language
+def get_text_for_tts_infer(text, hps, device, symbol_to_id=None):
+    """
+    Process text for TTS inference with Llama embeddings
+    
+    Args:
+        text: raw input text
+        language_str: language code (used for uroman transliteration)
+        hps: model hyperparameters
+        device: computation device
+        symbol_to_id: optional custom symbol mapping
+        
+    Returns:
+        tuple: (phones, llama_emb)
+    """
+    from hanasu.llama_utils import get_llama_feature
+    
+    # Get processed text and phones
+    phones, llama_emb = clean_text(text, device)
+    
+    # Convert to sequence IDs - no longer need tone_ids and lang_ids
+    phone_ids = cleaned_text_to_sequence(phones, symbol_to_id)
+    
+    # Convert to tensor
+    phones = torch.LongTensor(phone_ids)
+    
+    # Return the phones tensor and Llama embedding
+    return phones, llama_emb
 
 def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False):
     assert os.path.isfile(checkpoint_path)
@@ -334,30 +324,6 @@ def get_hparams_from_file(config_path):
 
     hparams = HParams(**config)
     return hparams
-
-def check_git_hash(model_dir):
-    source_dir = os.path.dirname(os.path.realpath(__file__))
-    if not os.path.exists(os.path.join(source_dir, ".git")):
-        logger.warn(
-            "{} is not a git repository, therefore hash value comparison will be ignored.".format(
-                source_dir
-            )
-        )
-        return
-
-    cur_hash = subprocess.getoutput("git rev-parse HEAD")
-
-    path = os.path.join(model_dir, "githash")
-    if os.path.exists(path):
-        saved_hash = open(path).read()
-        if saved_hash != cur_hash:
-            logger.warn(
-                "git hash values are different. {}(saved) != {}(current)".format(
-                    saved_hash[:8], cur_hash[:8]
-                )
-            )
-    else:
-        open(path, "w").write(cur_hash)
 
 def get_logger(model_dir, filename="train.log"):
     global logger

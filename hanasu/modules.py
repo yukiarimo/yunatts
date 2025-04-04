@@ -20,9 +20,10 @@ class LayerNorm(nn.Module):
         self.beta = nn.Parameter(torch.zeros(channels))
 
     def forward(self, x):
-        x = x.transpose(1, -1)
-        x = F.layer_norm(x, (self.channels,), self.gamma, self.beta, self.eps)
-        return x.transpose(1, -1)
+        # Create a new tensor using permute instead of modifying in-place with transpose
+        x_t = x.permute(0, 2, 1)  # Equivalent to transpose(1, -1)
+        x_ln = F.layer_norm(x_t, (self.channels,), self.gamma, self.beta, self.eps)
+        return x_ln.permute(0, 2, 1)  # Back to original shape
 
 class ConvReluNorm(nn.Module):
     def __init__(
@@ -515,7 +516,7 @@ class TransformerCouplingLayer(nn.Module):
         wn_sharing_parameter=None,
         gin_channels=0,
     ):
-        assert n_layers == 3, n_layers
+        assert n_layers == 6, n_layers
         assert channels % 2 == 0, "channels should be divisible by 2"
         super().__init__()
         self.channels = channels
