@@ -171,7 +171,12 @@ To train Hanasu or its encoder, follow the steps in the `notebooks` directory. T
 Contributions are welcome! Please open an issue in the repository for feature requests, bug reports, or other issues. If you want to contribute code, please fork the repository and submit a pull request.
 
 ## License
-Hanasu is distributed under the OSI Approved Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License. See `LICENSE` for more information.
+Here’s the updated single-paragraph text with links added for both the **AGPLv3** and **CC BY-NC-ND 4.0** licenses:
+
+---
+
+## License
+Hanasu is distributed under the OSI-approved [GNU Affero General Public License v3.0 (AGPLv3)](https://www.gnu.org/licenses/agpl-3.0.en.html); see `LICENSE.md` for more information. Additionally, on Hugging Face, encoder Hanasu and Himitsu are licensed under the [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License (CC BY-NC-ND 4.0)](https://creativecommons.org/licenses/by-nc-nd/4.0/), meaning they can only be used for non-commercial purposes without modification and with proper attribution. However, using these models for TTS as encoders are subject to the terms of the AGPLv3 license!
 
 ## Contact
 For questions or support, please open an issue in the repository or contact the author at yukiarimo@gmail.com.
