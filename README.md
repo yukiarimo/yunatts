@@ -1,113 +1,177 @@
-# VITS Model Modifications Documentation
+# Hanasu
+Welcome to Hanasu, a human-like TTS model based on the multilingual Hanasu V1 BERT encoder and VITS architecture. Hanasu is a Japanese word that means "to speak." This project aims to build a TTS model that can speak multiple languages and mimic human-like prosody.
 
-This document outlines the modifications made to the VITS text-to-speech model as requested.
+## Table of Content
+- [Hanasu](#hanasu)
+  - [Table of Content](#table-of-content)
+  - [Installation](#installation)
+    - [Requirements](#requirements)
+  - [Usage](#usage)
+    - [Language Support](#language-support)
+    - [CLI](#cli)
+    - [Python API](#python-api)
+  - [Training](#training)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
 
-## Overview of Changes
-
-1. **Model Parameter Updates**
-   - Increased n_flows from 4 to 8
-   - Increased hidden_channels from 192 to 256
-   - Increased inter_channels from 192 to 256
-
-2. **Text Processing Simplification**
-   - Removed language_emb and tone_emb
-   - Implemented raw character processing instead of phonemes
-   - Added transliteration to English for all languages (Japanese, Russian, etc.)
-   - Limited input to lowercase letters, numbers, and basic punctuation (!?.,)
-
-3. **Embedding System Replacement**
-   - Removed bert_proj and ja_bert_proj
-   - Implemented Llama-3.2-1B embeddings for all languages
-   - Added handling for potential size mismatches between text and embeddings
-
-4. **Audio Quality Improvements**
-   - Added support for 48kHz, 16-bit audio
-   - Implemented stereo audio support for both training and generation
-
-5. **Training Simplification**
-   - Removed multi-GPU training code
-   - Optimized for single GPU training
-   - Added compatibility for both NVIDIA GPUs and Apple Silicon (M1, M2, M3)
-
-## Usage Instructions
-
-### Training
-
-To train the model:
+## Installation
+To install Hanasu, you can follow the instructions below:
 
 ```bash
-python hanasu/train.py
+git clone https://github.com/yukiarimo/hanasu.git
+cd hanasu
+pip install -e .
+python -m unidic download
 ```
 
-The training script will automatically detect and use the appropriate device (CUDA for NVIDIA GPUs, MPS for Apple Silicon, or CPU as fallback).
+You can download the pre-trained models and encoders from the HF: [Hanasu V1 Encoder](https://huggingface.co/yukiarimo/yuna-ai-hanasu-v1).
 
-### Inference
+### Requirements
+- Python 3.8+
+- PyTorch 1.9+
+- torchaudio 0.9+
+- transformers 4.9+
+- librosa 0.8+
+- unidic 1.0+
+- 4GB+ GPU memory (for inference)
+- 8GB+ GPU memory (for training)
+- Supported GPUs: NVIDIA and Apple Silicon
 
-To generate audio using the trained model:
+## Usage
+Hanasu can be used in two ways: CLI and Python API. The CLI is more user-friendly, while the Python API is more flexible.
 
+### Language Support
+Languages supported by Hanasu TTS:
+
+- English (EN)
+- Spanish (ES)
+- French (FR)
+- Chinese (ZH)
+- Japanese (JP)
+- Korean (KR)
+- Russian (RU)
+
+Additional languages can be added by transliterating the text to IPA.
+
+### CLI
+You may use the Hanasu CLI to interact with Hanasu. The CLI may be invoked using either `hanasu` or `hanasu`. Here are some examples:
+
+**Read English text:**
 ```bash
-python test_model.py --model /path/to/model.pth --config /path/to/config.json --text "Your text here" --speaker 0 --language EN --output output.wav
+hanasu "Text to read" output.wav
 ```
 
-Parameters:
-- `--model`: Path to the model checkpoint
-- `--config`: Path to the configuration file
-- `--text`: Text to synthesize
-- `--speaker`: Speaker ID (default: 0)
-- `--language`: Language code (EN, JP, RU, etc.) (default: EN)
-- `--output`: Output audio file path (default: output.wav)
+**Specify a language:**
+```bash
+hanasu "Text to read" output.wav --language EN
+```
 
-## Technical Details
+**Specify a speaker:**
+```bash
+hanasu "Text to read" output.wav --language EN --speaker Yuna
+```
 
-### Text Processing
+**Specify a speed:**
+```bash
+hanasu "Text to read" output.wav --language EN --speaker Yuna --speed 1.5
+```
 
-The text processing pipeline has been simplified to use raw characters instead of phonemes:
-- Input is limited to lowercase letters, numbers, and basic punctuation (!?,.)
-- Non-English text is transliterated to English characters
-- Numbers are expected to be written as words
+**Load from a file:**
+```bash
+hanasu file.txt out.wav --file
+```
 
-### Llama Embeddings
+**Fuse models:**
+```bash
+# Basic Model Fusion: To fuse two models with default equal weighting:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 \
+    --model_steps 8600 108000 \
+    --output_dir /path/to/output \
+    --fallback_to_non_zero
+```
 
-The model now uses Llama-3.2-1B embeddings instead of BERT:
-- Embedding size is 8192
-- Embeddings are generated before text processing
-- The model handles potential size mismatches between text and embeddings
+**Fuse models with custom weighting:**
+```bash
+# Custom Model Fusion: Advanced Component-Specific Fusion with Three Models:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 /path/to/model3 \
+    --model_steps 8600 108000 21600 \
+    --output_dir /path/to/output \
+    --encoder_ratios 0.7 0.1 0.2 \
+    --decoder_ratios 0.4 0.3 0.3 \
+    --flow_attention_ratios 0.3 0.5 0.2 \
+    --flow_other_ratios 0.3 0.4 0.3 \
+    --duration_ratios 0.4 0.1 0.5 \
+    --other_ratios 0.4 0.2 0.4 \
+    --fallback_to_non_zero
+```
 
-### Stereo Audio Support
+**Fusion and Audio Generation:**
+```bash
+# Generate Audio from Fused Model:
+python -m hanasu.fuse \
+    --model_dirs /path/to/model1 /path/to/model2 \
+    --model_steps 8600 108000 \
+    --output_dir /path/to/output \
+    --config_path /path/to/config.json \
+    --generate_audio \
+    --text "This is a test of the fused model synthesis." \
+    --speaker_id 0 \
+    --device cuda \
+    --sdp_ratio 0.2 \
+    --noise_scale 0.6 \
+    --noise_scale_w 0.8 \
+    --speed 1.0
+```
 
-The model now supports stereo audio:
-- Audio processing functions handle both mono and stereo inputs
-- The Generator class can output either mono or stereo audio
-- The data loading pipeline properly handles stereo audio files
+### Python API
+You may also use the Hanasu Python API to interact with Hanasu. Here is an example:
 
-### Device Compatibility
+```python
+from hanasu.api import TTS
 
-The model is now compatible with:
-- NVIDIA GPUs (using CUDA)
-- Apple Silicon (using MPS)
-- CPU (as fallback)
+# Speed is adjustable
+text = "In a quiet neighborhood just west of Embassy Row in Washington, there exists a medieval-style walled garden whose roses, it is said, spring from twelfth-century plants. The garden's Carderock gazebo, known as Shadow House, sits elegantly amid meandering pathways of stones dug from George Washington's private quarry."
+model = TTS(language='EN', device='cpu', use_hf=False, config_path="config.json", ckpt_path="G_100.pth")
+model.tts_to_file(text=text, speaker_id=0, output_path='en-default.wav', sdp_ratio=0.8, noise_scale=0, noise_scale_w=0.2, speed=1.0, quiet=True)
 
-## File Structure
+"""
+def tts_to_file(
+ text,          # The input text to convert to speech
+ speaker_id,    # ID of the speaker voice to use
+ output_path,   # Where to save the audio file (optional)
+ sdp_ratio,     # Controls the "cleanness" of the voice (0.0-1.0)
+ noise_scale,   # Controls the variation in voice (0.0-1.0)
+ noise_scale_w, # Controls the variation in speaking pace (0.0-1.0)
+ speed,         # Speaking speed multiplier (1.0 = normal speed)
+ pbar,          # Custom progress bar (optional)
+ format,        # Audio format to save as (optional)
+ position,      # Progress bar position (optional)
+ quiet,         # Suppress progress output if True
+):
 
-- `hanasu/models.py`: Contains the main model architecture
-- `hanasu/modules.py`: Contains model components
-- `hanasu/mel_processing.py`: Audio processing functions
-- `hanasu/train.py`: Training script
-- `hanasu/text/`: Text processing components
-- `hanasu/llama_utils.py`: Llama embedding utilities
-- `test_model.py`: Test script for inference
+- Higher sdp_ratio: Cleaner but more robotic voice
+- Higher noise_scale: More variation/expressiveness but potentially less stable
+- Higher noise_scale_w: More varied pacing but could sound unnatural
+"""
+```
 
-## Dependencies
+## Training
+To train Hanasu or its encoder, follow the steps in the `notebooks` directory. The training process is easy to follow and can be done on a single GPU. The training data is not included in this repository, but you can use your own data or download a dataset from a TTS dataset repository.
 
-- PyTorch (with CUDA or MPS support)
-- Transformers (for Llama model)
-- Librosa (for audio processing)
-- SoundFile (for stereo audio output)
-- NumPy
-- tqdm
+> Note 1: If you want to fine-tune the TTS model instead of training from scratch, place the pre-trained models into the `hanasu/logs/Yuna` directory.
 
-## Notes
+> Note 2: If you plan to fine-tune or change the encoder, you must retrain the TTS models from scratch.
 
-- The model is optimized for high-pitched seiyuu anime girl voice
-- For best results, use 48kHz, 16-bit stereo audio for training
-- When using Apple Silicon, make sure to use PyTorch with MPS support
+> Note 3: The TTS model has not been released yet, but you can train it yourself using the provided encoder. It will be released in the future once we have donations to support the project.
+
+## Contributing
+Contributions are welcome! Please open an issue in the repository for feature requests, bug reports, or other issues. If you want to contribute code, please fork the repository and submit a pull request.
+
+## License
+Hanasu is distributed under the OSI Approved Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License. See `LICENSE` for more information.
+
+## Contact
+For questions or support, please open an issue in the repository or contact the author at yukiarimo@gmail.com.

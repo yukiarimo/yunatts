@@ -15,15 +15,15 @@ class LayerNorm(nn.Module):
         super().__init__()
         self.channels = channels
         self.eps = eps
-
         self.gamma = nn.Parameter(torch.ones(channels))
         self.beta = nn.Parameter(torch.zeros(channels))
 
     def forward(self, x):
-        # Create a new tensor using permute instead of modifying in-place with transpose
-        x_t = x.permute(0, 2, 1)  # Equivalent to transpose(1, -1)
-        x_ln = F.layer_norm(x_t, (self.channels,), self.gamma, self.beta, self.eps)
-        return x_ln.permute(0, 2, 1)  # Back to original shape
+        # x: [B, C, T]
+        # Transpose to [B, T, C] and clone to prevent in-place issues on MPS
+        x_t = x.transpose(1, 2).clone()
+        x_norm = F.layer_norm(x_t, (self.channels,), self.gamma, self.beta, self.eps)
+        return x_norm.transpose(1, 2)
 
 class ConvReluNorm(nn.Module):
     def __init__(

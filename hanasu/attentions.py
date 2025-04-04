@@ -12,14 +12,31 @@ class LayerNorm(nn.Module):
         super().__init__()
         self.channels = channels
         self.eps = eps
-
+        
+        # Use actual learnable parameters
         self.gamma = nn.Parameter(torch.ones(channels))
         self.beta = nn.Parameter(torch.zeros(channels))
-
+        
     def forward(self, x):
-        x = x.transpose(1, -1)
-        x = F.layer_norm(x, (self.channels,), self.gamma, self.beta, self.eps)
-        return x.transpose(1, -1)
+        # Create a new tensor with detached stats to avoid in-place operations
+        # Input is [B, C, T]
+        
+        # First detach to avoid modifying the computation graph
+        stats_x = x.detach().transpose(1, 2)  # [B, T, C]
+        
+        # Calculate mean and variance across the channel dimension
+        mean = stats_x.mean(dim=-1, keepdim=True)  # [B, T, 1]
+        var = stats_x.var(dim=-1, keepdim=True, unbiased=False)  # [B, T, 1]
+        
+        # Now normalize the original input, not the detached version
+        x_t = x.transpose(1, 2)  # [B, T, C]
+        x_norm = (x_t - mean) / torch.sqrt(var + self.eps)
+        
+        # Apply scale and shift with the learnable parameters
+        x_norm = x_norm * self.gamma + self.beta
+        
+        # Return to original shape
+        return x_norm.transpose(1, 2)  # [B, C, T]
 
 @torch.jit.script
 def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
