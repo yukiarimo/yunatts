@@ -19,7 +19,8 @@
     "warmup_epochs": 0,
     "c_mel": 45,
     "c_kl": 1.0,
-    "skip_optimizer": true
+    "skip_optimizer": true,
+    "eval_num_samples": 1
   },
   "data": {
     "training_files": "configs/Yuna/train.list",

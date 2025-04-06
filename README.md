@@ -1,5 +1,5 @@
 # Hanasu
-Welcome to Hanasu, a human-like TTS model based on the multilingual Hanasu V1 BERT encoder and VITS architecture. Hanasu is a Japanese word that means "to speak." This project aims to build a TTS model that can speak multiple languages and mimic human-like prosody.
+Hanasu is a human-like TTS model based on the multilingual Himitsu V1 transformer-based encoder and VITS architecture. Hanasu is a Japanese word that means "to speak." This project aims to build a TTS model that can speak multiple languages and mimic human-like prosody.
 
 ## Table of Content
 - [Hanasu](#hanasu)
@@ -13,6 +13,7 @@ Welcome to Hanasu, a human-like TTS model based on the multilingual Hanasu V1 BE
   - [Training](#training)
   - [Contributing](#contributing)
   - [License](#license)
+  - [License](#license-1)
   - [Contact](#contact)
 
 ## Installation

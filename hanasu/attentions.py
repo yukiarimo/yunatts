@@ -12,31 +12,29 @@ class LayerNorm(nn.Module):
         super().__init__()
         self.channels = channels
         self.eps = eps
-        
-        # Use actual learnable parameters
         self.gamma = nn.Parameter(torch.ones(channels))
         self.beta = nn.Parameter(torch.zeros(channels))
-        
+
     def forward(self, x):
-        # Create a new tensor with detached stats to avoid in-place operations
-        # Input is [B, C, T]
+        # x: [B, C, T]
+        # Create a brand new tensor by using clone().detach() for transposing
+        x_t = x.transpose(1, 2).contiguous()  # [B, T, C]
         
-        # First detach to avoid modifying the computation graph
-        stats_x = x.detach().transpose(1, 2)  # [B, T, C]
+        # Calculate mean and variance
+        mean = x_t.mean(dim=-1, keepdim=True)
+        var = x_t.var(dim=-1, keepdim=True, unbiased=False)
         
-        # Calculate mean and variance across the channel dimension
-        mean = stats_x.mean(dim=-1, keepdim=True)  # [B, T, 1]
-        var = stats_x.var(dim=-1, keepdim=True, unbiased=False)  # [B, T, 1]
+        # Create completely new tensors at each step to avoid in-place operations
+        denominator = torch.sqrt(var + self.eps)
+        x_normalized = (x_t - mean) / denominator
         
-        # Now normalize the original input, not the detached version
-        x_t = x.transpose(1, 2)  # [B, T, C]
-        x_norm = (x_t - mean) / torch.sqrt(var + self.eps)
+        # Create another new tensor for the final scaling
+        gamma = self.gamma.view(1, 1, -1)
+        beta = self.beta.view(1, 1, -1)
+        x_scaled = x_normalized * gamma + beta
         
-        # Apply scale and shift with the learnable parameters
-        x_norm = x_norm * self.gamma + self.beta
-        
-        # Return to original shape
-        return x_norm.transpose(1, 2)  # [B, C, T]
+        # Return a new transposed tensor
+        return x_scaled.transpose(1, 2).contiguous()
 
 @torch.jit.script
 def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):

@@ -374,7 +374,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
                 loss_gen, losses_gen = generator_loss(y_d_hat_g)
                 loss_gen_all = loss_gen + loss_fm + loss_mel + loss_kl
                 if net_dur_disc is not None:
-                    loss_gen_all += loss_dur_hat
+                    loss_gen_all += loss_dur_hat.detach()
 
         # Generator backward and optimize
         optim_g.zero_grad()
@@ -385,14 +385,14 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
         scaler.update()
 
         # Update learning rate
-        lr = optim_g.param_groups[0]["lr"]
-        if "learning_rate" in hps.train:
-            lr = hps.train.learning_rate
-        lr = utils.get_lr_decay(global_step, lr, hps)
-        optim_g.param_groups[0]["lr"] = lr
-        optim_d.param_groups[0]["lr"] = lr
-        if net_dur_disc is not None:
-            optim_dur_disc.param_groups[0]["lr"] = lr
+       # lr = optim_g.param_groups[0]["lr"]
+       # if "learning_rate" in hps.train:
+       #     lr = hps.train.learning_rate
+       # lr = utils.get_lr_decay(global_step, lr, hps)
+       # optim_g.param_groups[0]["lr"] = lr
+       # optim_d.param_groups[0]["lr"] = lr
+       # if net_dur_disc is not None:
+       #     optim_dur_disc.param_groups[0]["lr"] = lr
 
         # Log training progress
         if global_step % hps.train.log_interval == 0:
@@ -430,16 +430,17 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
             scalar_dict.update(
                 {"loss/d_g/{}".format(i): v for i, v in enumerate(losses_disc_g)}
             )
-
+            is_stereo_train = y.size(1) == 2
+            is_stereo_spec = spec.size(1) == 2
             image_dict = {
                 "slice/mel_org": utils.plot_spectrogram_to_numpy(
-                    y_mel[0].data.cpu().numpy()
+                    y_mel[0, 0].data.cpu().numpy() if is_stereo_train else y_mel[0].data.cpu().numpy()
                 ),
                 "slice/mel_gen": utils.plot_spectrogram_to_numpy(
-                    y_hat_mel[0].data.cpu().numpy()
+                    y_hat_mel[0, 0].data.cpu().numpy() if is_stereo_train else y_hat_mel[0].data.cpu().numpy()
                 ),
                 "all/mel": utils.plot_spectrogram_to_numpy(
-                    spec[0].data.cpu().numpy()
+                    spec[0, 0].data.cpu().numpy() if is_stereo_spec else spec[0].data.cpu().numpy()
                 ),
                 "all/attn": utils.plot_alignment_to_numpy(
                     attn[0, 0].data.cpu().numpy()
@@ -487,15 +488,25 @@ def evaluate(hps, generator, eval_loader, writer_eval, device):
         for batch_idx, batch in enumerate(eval_loader):
             x, x_lengths, spec, spec_lengths, y, y_lengths, sid, llama_emb = [
                 b.to(device) for b in batch
-            ]
-            
+            ] # spec shape: [B, C, F, T] or [B, F, T]. y shape: [B, C, T] or [B, 1, T]
+
+            # --- Refined Stereo Detection ---
+            # Check dimensions of input tensors from the batch
+            is_stereo_input_spec = spec.dim() == 4
+            is_stereo_input_wav = y.size(1) > 1 # Check channel dim of waveform
+            # Use input spec dim as the primary indicator for consistency
+            is_stereo = is_stereo_input_spec
+            # --- End Refined Stereo Detection ---
+
             # Generate output
-            y_hat, attn, mask, *_ = generator.module.infer(
+            # generator.infer(...) -> y_hat shape: [B, C, T] or [B, 1, T]
+            y_hat, attn, mask, *_ = generator.infer(
                 x, x_lengths, sid, llama_emb, max_len=1000
             )
             y_hat_lengths = mask.sum([1, 2]).long() * hps.data.hop_length
 
-            # Convert to mel spectrogram
+            # Convert GT spec to mel
+            # spec_to_mel_torch(...) -> mel shape: [B, C, M, T] or [B, M, T]
             mel = spec_to_mel_torch(
                 spec,
                 hps.data.filter_length,
@@ -504,13 +515,11 @@ def evaluate(hps, generator, eval_loader, writer_eval, device):
                 hps.data.mel_fmin,
                 hps.data.mel_fmax,
             )
-            if y_hat.size(1) == 2:  # Stereo
-                y_hat_for_mel = y_hat
-            else:
-                y_hat_for_mel = y_hat.squeeze(1)
-                
+
+            # Generate mel from y_hat
+            # mel_spectrogram_torch(...) -> y_hat_mel shape: [B, C, M, T] or [B, M, T]
             y_hat_mel = mel_spectrogram_torch(
-                y_hat_for_mel.float(),
+                y_hat.float(),
                 hps.data.filter_length,
                 hps.data.n_mel_channels,
                 hps.data.sampling_rate,
@@ -520,37 +529,40 @@ def evaluate(hps, generator, eval_loader, writer_eval, device):
                 hps.data.mel_fmax,
             )
 
-            # Ensure consistent dimensions for visualization
-            if mel.dim() == 4 and y_hat_mel.dim() == 4:
-                # For visualization, just use the first sample and match dimensions
-                mel_vis = mel[0]
-                y_hat_mel_vis = y_hat_mel[0]
-                
-                # Match frequency dimension if needed
-                if mel_vis.size(1) != y_hat_mel_vis.size(1):
-                    min_freq = min(mel_vis.size(1), y_hat_mel_vis.size(1))
-                    mel_vis = mel_vis[:, :min_freq]
-                    y_hat_mel_vis = y_hat_mel_vis[:, :min_freq]
-            else:
-                mel_vis = mel[0]
-                y_hat_mel_vis = y_hat_mel[0]
-            
-            # Log evaluation results
+            # --- Consistent Channel Selection for Visualization ---
+            # Select the first batch item (index 0).
+            # Select the first channel (index 0) *if* input was stereo.
+            mel_vis = mel[0, 0] if is_stereo else mel[0]
+            y_hat_mel_vis = y_hat_mel[0, 0] if is_stereo else y_hat_mel[0]
+            y_vis = y[0, 0] if is_stereo else y[0, 0] # Select first channel even if mono y is [B, 1, T]
+            y_hat_vis = y_hat[0, 0] if is_stereo else y_hat[0, 0] # Select first channel even if mono y_hat is [B, 1, T]
+            # --- End Consistent Channel Selection ---
+
+            # --- Plotting ---
+            # Add debug prints to check shapes right before plotting
+            # print(f"DEBUG Eval[{batch_idx}]: is_stereo={is_stereo}")
+            # print(f"DEBUG Eval[{batch_idx}]: y_hat_mel_vis shape: {y_hat_mel_vis.shape}")
+
             image_dict = {
                 f"gen/mel_{batch_idx}": utils.plot_spectrogram_to_numpy(
-                    y_hat_mel_vis.cpu().numpy()
+                    y_hat_mel_vis.cpu().numpy() # Should be 2D [M, T]
                 )
             }
-            audio_dict = {f"gen/audio_{batch_idx}": y_hat[0, :, : y_hat_lengths[0]]}
+
+            # print(f"DEBUG Eval[{batch_idx}]: y_hat_vis shape: {y_hat_vis.shape}")
+            audio_dict = {f"gen/audio_{batch_idx}": y_hat_vis[: y_hat_lengths[0]]} # Use selected channel audio
+
             if global_step == 0:
-                image_dict.update(
-                    {
-                        f"gt/mel_{batch_idx}": utils.plot_spectrogram_to_numpy(
-                            mel_vis.cpu().numpy()
-                        )
-                    }
-                )
-                audio_dict.update({f"gt/audio_{batch_idx}": y[0, :, : y_lengths[0]]})
+                 # print(f"DEBUG Eval[{batch_idx}] GS=0: mel_vis shape: {mel_vis.shape}")
+                 image_dict.update(
+                     {
+                         f"gt/mel_{batch_idx}": utils.plot_spectrogram_to_numpy(
+                             mel_vis.cpu().numpy() # Should be 2D [M, T]
+                         )
+                     }
+                 )
+                 # print(f"DEBUG Eval[{batch_idx}] GS=0: y_vis shape: {y_vis.shape}")
+                 audio_dict.update({f"gt/audio_{batch_idx}": y_vis[: y_lengths[0]]}) # Use selected channel audio
 
             utils.summarize(
                 writer=writer_eval,
@@ -559,10 +571,10 @@ def evaluate(hps, generator, eval_loader, writer_eval, device):
                 audios=audio_dict,
                 audio_sampling_rate=hps.data.sampling_rate,
             )
-            
+
             if batch_idx >= hps.train.eval_num_samples:
                 break
-                
+
     generator.train()
 
 if __name__ == "__main__":
