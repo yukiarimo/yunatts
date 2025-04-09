@@ -104,7 +104,7 @@ class TTS(nn.Module):
                         length_scale=1. / speed,
                     )[0][0, 0].data.cpu().float().numpy()
                 del x_tst, llama_emb, x_tst_lengths, speakers
-                
+
             audio_list.append(audio)
         torch.cuda.empty_cache()
         audio = self.audio_numpy_concat(audio_list, sr=self.hps.data.sampling_rate, speed=speed)
@@ -137,7 +137,7 @@ class TTS(nn.Module):
         texts = self.split_sentences_into_pieces(text, quiet)
         device = self.device
         sr = self.hps.data.sampling_rate
-        
+
         if not quiet:
             print("> texts: ", texts)
 

@@ -19,20 +19,20 @@ class LayerNorm(nn.Module):
         # x: [B, C, T]
         # Create a brand new tensor by using clone().detach() for transposing
         x_t = x.transpose(1, 2).contiguous()  # [B, T, C]
-        
+
         # Calculate mean and variance
         mean = x_t.mean(dim=-1, keepdim=True)
         var = x_t.var(dim=-1, keepdim=True, unbiased=False)
-        
+
         # Create completely new tensors at each step to avoid in-place operations
         denominator = torch.sqrt(var + self.eps)
         x_normalized = (x_t - mean) / denominator
-        
+
         # Create another new tensor for the final scaling
         gamma = self.gamma.view(1, 1, -1)
         beta = self.beta.view(1, 1, -1)
         x_scaled = x_normalized * gamma + beta
-        
+
         # Return a new transposed tensor
         return x_scaled.transpose(1, 2).contiguous()
 

@@ -6,7 +6,7 @@ def feature_loss(fmap_r, fmap_g):
         for rl, gl in zip(dr, dg):
             # Initialize matched tensors with original tensors
             rl_matched, gl_matched = rl, gl
-            
+
             # Create new tensors instead of modifying in-place
             if rl.dim() > 2 and gl.dim() > 2:  # Both have channel dimension
                 if rl.size(2) > gl.size(2):
@@ -30,7 +30,7 @@ def feature_loss(fmap_r, fmap_g):
                     for _ in range(diff):
                         gl_matched = gl_matched.unsqueeze(-1)
                     gl_matched = gl_matched.expand_as(rl)
-            
+
             loss = loss + torch.mean(torch.abs(rl_matched - gl_matched))
     return loss
 
@@ -41,7 +41,7 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
     for dr, dg in zip(disc_real_outputs, disc_generated_outputs):
         # Initialize matched tensors with original tensors
         dr_matched, dg_matched = dr, dg
-        
+
         # Create new tensors instead of modifying in-place
         if dr.dim() > 2 and dg.dim() > 2:
             # Make sure tensors have the same size along dimension 2
@@ -58,7 +58,7 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
             else:
                 # Create a new tensor with dr's shape
                 dg_matched = dg.reshape(*dr.size())
-            
+
         r_loss = torch.mean((1-dr_matched)**2)
         g_loss = torch.mean(dg_matched**2)
         loss = loss + (r_loss + g_loss)

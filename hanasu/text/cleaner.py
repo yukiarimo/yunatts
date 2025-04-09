@@ -15,31 +15,31 @@ def process_raw_text(text):
     """
     # Convert to lowercase
     text = text.lower()
-    
+
     # Replace punctuation except for !?.,' with commas
     allowed_punctuation = "!?.,''"  # Added apostrophes and single quotes
     for char in string.punctuation:
         if char not in allowed_punctuation:
             text = text.replace(char, ",")
-    
+
     # Keep only allowed characters
     allowed_chars = set(string.ascii_lowercase + string.digits + allowed_punctuation + " ")
     text = ''.join(c for c in text if c in allowed_chars)
-    
+
     # Remove extra spaces and commas
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r',+', ',', text)
-    
+
     return text
 
 def transliterate_to_english(text):
     """
     Transliterate text to English characters using uroman
-    
+
     Args:
         text (str): Input text in any language
         language (str, optional): Language code (not used by uroman, kept for backward compatibility)
-        
+
     Returns:
         str: Transliterated text in Latin characters
     """
@@ -54,21 +54,21 @@ def clean_text(text, device=None):
     1. Transliterate to English using uroman
     2. Process raw text
     3. Return character sequence and Llama embeddings
-    
+
     Args:
         text (str): Input text in any language
         language (str, optional): Language code (kept for backward compatibility)
         device (str, optional): Device for Llama model
-        
+
     Returns:
         tuple: (processed_text, phones, tones, word2ph, llama_emb)
     """
     # Transliterate to English using uroman
     text = transliterate_to_english(text)
-    
+
     # Process raw text
     processed_text = process_raw_text(text)
-    
+
     # Convert to character sequence
     phones = list(processed_text)
 
@@ -77,18 +77,18 @@ def clean_text(text, device=None):
 
     # Get Llama embeddings
     llama_emb = get_llama_feature(processed_text, device=device)
-    
+
     return phones, llama_emb
 
 def clean_text_bert(text, device=None):
     """
     Clean text and return Llama embeddings instead of BERT features
-    
+
     Args:
         text (str): Input text in any language
         language (str, optional): Language code (kept for backward compatibility)
         device (str, optional): Device for Llama model
-        
+
     Returns:
         tuple: (processed_text, phones, tones, word2ph, llama_emb)
     """
@@ -97,11 +97,11 @@ def clean_text_bert(text, device=None):
 def text_to_sequence(text):
     """
     Convert text to sequence of character IDs
-    
+
     Args:
         text (str): Input text in any language
         language (str, optional): Language code (kept for backward compatibility)
-        
+
     Returns:
         list: Sequence of character IDs
     """

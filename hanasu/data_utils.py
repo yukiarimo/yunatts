@@ -31,10 +31,10 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.sampling_rate = hparams.sampling_rate
         self.spk_map = hparams.spk2id
         self.hparams = hparams
-        
+
         # Add stereo support
         self.channels = getattr(hparams, "audio_channels", 1)  # Default to mono if not specified
-        
+
         self.use_mel_spec_posterior = getattr(
             hparams, "use_mel_posterior_encoder", False
         )
@@ -95,14 +95,14 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
         # Convert text characters to phone IDs
         phone_ids = cleaned_text_to_sequence(phones)
-        
+
         # Convert sequences to tensors
         phones = torch.LongTensor(phone_ids)
 
         spec, wav = self.get_audio(audiopath)
         sid = int(self.spk_map[sid])
         sid = torch.LongTensor([sid])
-        
+
         return (phones, spec, wav, sid, llama_emb)
 
     def get_audio(self, filename):
@@ -113,7 +113,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     filename, sampling_rate, self.sampling_rate
                 )
             )
-        
+
         # Handle stereo audio
         if audio_norm.dim() == 2 and self.channels == 2:
             # Already stereo, shape: [channels, time]
@@ -127,7 +127,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         else:
             # Mono audio, add channel dimension
             audio_norm = audio_norm.unsqueeze(0)
-        
+
         spec_filename = filename.replace(".wav", f".{self.channels}ch.spec.pt")
         if self.use_mel_spec_posterior:
             spec_filename = spec_filename.replace(".spec.pt", ".mel.pt")
@@ -164,7 +164,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def get_text(self, text, phone, wav_path):
         phone = cleaned_text_to_sequence(phone)
-        
+
         # Use Llama embeddings instead of BERT
         llama_path = wav_path.replace(".wav", ".llama.pt")
         try:
@@ -173,7 +173,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         except Exception as e:
             print(f"Generating new Llama embedding for {wav_path}: {e}")
             llama_emb = get_llama_feature(text)
-            
+
             # Handle potential size mismatch between text and embeddings
             if llama_emb.shape[-1] != len(phone):
                 # Resize embedding to match phone length
@@ -186,11 +186,11 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     # Pad with zeros
                     padding = torch.zeros(llama_emb.shape[0], target_len - orig_len)
                     llama_emb = torch.cat([llama_emb, padding], dim=1)
-            
+
             torch.save(llama_emb, llama_path)
-            
+
         assert llama_emb.shape[-1] == len(phone), f"Llama embedding shape {llama_emb.shape} doesn't match phone length {len(phone)}"
-        
+
         phone = torch.LongTensor(phone)
         return llama_emb, phone
 
@@ -203,7 +203,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.audiopaths_sid_text)
-    
+
     def shuffle_mapping(self):
         """
         Shuffles the dataset for each epoch to ensure different batching
@@ -237,32 +237,32 @@ class TextAudioSpeakerCollate:
         sid = torch.LongTensor(len(batch))
 
         text_padded = torch.LongTensor(len(batch), max_text_len)
-        
+
         # Check if we have stereo or mono spectrograms
         is_stereo_spec = batch[0][1].dim() == 3
         is_stereo_wav = batch[0][2].size(0) > 1
-        
+
         if is_stereo_spec:
             channels_spec = batch[0][1].size(0)
             spec_padded = torch.FloatTensor(len(batch), channels_spec, batch[0][1].size(1), max_spec_len)
         else:
             spec_padded = torch.FloatTensor(len(batch), batch[0][1].size(0), max_spec_len)
-            
+
         if is_stereo_wav:
             channels_wav = batch[0][2].size(0)
             wav_padded = torch.FloatTensor(len(batch), channels_wav, max_wav_len)
         else:
             wav_padded = torch.FloatTensor(len(batch), 1, max_wav_len)
-            
+
         # Get Llama embedding size
         llama_dim = batch[0][4].size(0)
         llama_padded = torch.FloatTensor(len(batch), llama_dim, max_text_len)
-        
+
         text_padded.zero_()
         spec_padded.zero_()
         wav_padded.zero_()
         llama_padded.zero_()
-        
+
         for i in range(len(ids_sorted_decreasing)):
             row = batch[ids_sorted_decreasing[i]]
 

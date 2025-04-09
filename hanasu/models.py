@@ -426,14 +426,14 @@ class PosteriorEncoder(nn.Module):
 
         # Check if we're using stereo (in_channels > standard spectrogram size)
         self.is_stereo = in_channels > 1025
-        
+
         if self.is_stereo:
             # For stereo, we double the input channels
             self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
         else:
             # Original mono version
             self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
-            
+
         self.enc = modules.WN(
             hidden_channels,
             kernel_size,
@@ -449,7 +449,7 @@ class PosteriorEncoder(nn.Module):
             b, c, f, t = x.size()
             # Reshape to combine stereo and frequency dimensions
             x = x.reshape(b, c * f, t)
-            
+
         x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(
             x.dtype
         )
@@ -791,13 +791,13 @@ class SynthesizerTrn(nn.Module):
         self.gin_channels = gin_channels
         self.segment_size = segment_size
         self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", True)
-        
+
         # Handle audio channels for stereo
         self.channels = kwargs.get("channels", 1)  # Default to mono if not specified
         spec_channels_with_channels = spec_channels
         if self.channels == 2:  # For stereo
             spec_channels_with_channels = spec_channels * 2
-            
+
         self.mas_noise_scale = mas_noise_scale_initial
         self.current_mas_noise_scale = mas_noise_scale_initial  # Add this line to initialize the current_mas_noise_scale
         self.noise_scale_delta = noise_scale_delta
@@ -814,7 +814,7 @@ class SynthesizerTrn(nn.Module):
             p_dropout,
             gin_channels=gin_channels,
         )
-        
+
         # Update posterior encoder to handle stereo if needed
         self.enc_q = PosteriorEncoder(
             spec_channels_with_channels,  # Use adjusted spec channels for stereo

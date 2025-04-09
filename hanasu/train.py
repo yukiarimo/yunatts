@@ -55,14 +55,14 @@ def get_device():
 
 def run():
     hps = utils.get_hparams()
-    
+
     # Set up device
     device = get_device()
     print(f"Using device: {device}")
-    
+
     torch.manual_seed(hps.train.seed)
     global global_step
-    
+
     # Set up logging and tensorboard
     logger = utils.get_logger(hps.model_dir)
     logger.info(hps)
@@ -72,7 +72,7 @@ def run():
     # Set up datasets and dataloaders
     train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps.data)
     collate_fn = TextAudioSpeakerCollate()
-    
+
     # Simple DataLoader without distributed sampler
     train_loader = DataLoader(
         train_dataset,
@@ -85,7 +85,7 @@ def run():
         persistent_workers=True,
         prefetch_factor=None,  # Reduced from 4 for better compatibility
     )
-    
+
     eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data)
     eval_loader = DataLoader(
         eval_dataset,
@@ -300,13 +300,13 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
                 hps.data.mel_fmin,
                 hps.data.mel_fmax,
             )
-            
+
             # For stereo handling - remove squeeze if output is already correct shape
             if y_hat.size(1) == 2:  # Stereo
                 y_hat_for_mel = y_hat
             else:
                 y_hat_for_mel = y_hat.squeeze(1)
-                
+
             y_hat_mel = mel_spectrogram_torch(
                 y_hat_for_mel,
                 hps.data.filter_length,
@@ -327,7 +327,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
                     logw = logw.unsqueeze(1)  # Add channel dimension
                 elif logw.dim() == 4:
                     logw = logw.squeeze(2)    # Remove extra dimension
-                
+
                 # Now use logw which should be [batch_size, 1, seq_length]
                 y_dur_hat_r, y_dur_hat_g = net_dur_disc(x, x_mask, logw, logw)
                 with autocast(device_type=device, enabled=False):
@@ -368,7 +368,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
                 y_mel_matched = y_mel[:, :, :, :min_len]
                 y_hat_mel_matched = y_hat_mel[:, :, :, :min_len]
                 loss_mel = F.l1_loss(y_mel_matched, y_hat_mel_matched) * hps.train.c_mel
-                
+
                 loss_kl = kl_loss(z_p, logs_q, m_p, logs_p, z_mask) * hps.train.c_kl
                 loss_fm = feature_loss(fmap_r, fmap_g)
                 loss_gen, losses_gen = generator_loss(y_d_hat_g)

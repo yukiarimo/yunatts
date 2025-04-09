@@ -30,30 +30,30 @@ def main(
     config_path: str,
 ):
     os.makedirs(output_dir, exist_ok=True)
-    
+
     train_path = os.path.join(output_dir, 'train.list')
     val_path = os.path.join(output_dir, 'val.list')
     out_config_path = os.path.join(os.path.dirname(metadata), 'config.json')
-    
+
     cleaned_path = os.path.join(output_dir, "metadata.cleaned")
 
     # Process the data with only raw text and language ID
     device = 'cuda:0' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     out_file = open(cleaned_path, "w", encoding="utf-8")
-    
+
     for line in tqdm(open(metadata, encoding="utf-8").readlines()):
         utt, spk, text = line.strip().split("|")
-        
+
         # Get normalized text and Llama embeddings (ignore phones, tones, word2ph)
         norm_text, llama_emb = clean_text(text, device=device)
-        
+
         # Join the list of characters back into a string if needed
         if isinstance(norm_text, list):
             norm_text = ''.join(norm_text)
 
         # Check Llama embedding shape for debugging
         print(f"Llama embedding shape for '{utt}': {llama_emb.shape}")
-        
+
         # Write simplified metadata (no phones, tones, or word2ph)
         out_file.write(
             "{}|{}|{}\n".format(
@@ -62,19 +62,19 @@ def main(
                 norm_text
             )
         )
-        
+
         # Save Llama embeddings
         llama_path = utt.replace(".wav", ".llama.pt")
         os.makedirs(os.path.dirname(llama_path), exist_ok=True)
         torch.save(llama_emb.cpu(), llama_path)
-        
+
         # Check file size
         file_size_bytes = os.path.getsize(llama_path)
         file_size_mb = file_size_bytes / (1024 * 1024)
         print(f"Saved embedding to {llama_path} (Size: {file_size_mb:.2f} MB)")
-    
+
     out_file.close()
-    
+
     # Split into train/val using val_ratio
     spk_utt_map = defaultdict(list)
     spk_id_map = {}
@@ -116,7 +116,7 @@ def main(
     config["data"]["validation_files"] = val_path
     config["data"]["n_speakers"] = len(spk_id_map)
     config["symbols"] = symbols
-    
+
     # Add summary output
     print(f"Data preparation complete.")
     print(f"Training files: {len(train_list)}")

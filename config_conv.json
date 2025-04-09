@@ -1,0 +1,72 @@
+{
+  "version": "1.0.0",
+  "data": {
+    "sampling_rate": 48000,
+    "filter_length": 2048,
+    "hop_length": 512,
+    "win_length": 2048,
+    "n_mel_channels": 128,
+    "mel_fmin": 0.0,
+    "mel_fmax": 24000.0,
+    "add_blank": false,
+    "validation_files": false
+  },
+  "model": {
+    "inter_channels": 256,
+    "hidden_channels": 256,
+    "filter_channels": 768,
+    "resblock": "1",
+    "resblock_kernel_sizes": [3, 7, 11],
+    "resblock_dilation_sizes": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+    "upsample_rates": [8, 8, 4, 2],
+    "upsample_initial_channel": 512,
+    "upsample_kernel_sizes": [16, 16, 8, 4],
+    "gin_channels": 256
+  },
+  "train": {
+    "log_interval": 100,
+    "eval_interval": 1000,
+    "seed": 8,
+    "epochs": 10000000,
+    "learning_rate": 1e-3,
+    "betas": [0.8, 0.9999],
+    "eps": 1e-9,
+    "batch_size": 2,
+    "fp16_run": true,
+    "lr_decay": 0.999875,
+    "segment_size": 23552,
+    "c_mel": 45,
+    "c_kl": 1.0,
+    "grad_clip": 1.0,
+    "weight_decay": 0.1,
+    "same_speaker_prob": 0.5,
+    "num_workers": 8,
+    "checkpoint_interval": 20,
+    "distributed": false,
+    "num_gpus": 1,
+    "continue_from_checkpoint": false,
+    "checkpoint_path": "",
+    "log_dir": "logs",
+    "checkpoint_dir": "checkpoints",
+    "output_dir": "./hanasu_output"
+  },
+  "inference": {
+    "tau": 0.3,
+    "batch_size": 1,
+    "segment_size": 512000
+  },
+  "audio": {
+    "stereo": true,
+    "normalize_audio": false,
+    "target_level": -27,
+    "vad_threshold": -40,
+    "min_silence_duration": 500,
+    "keep_silence_duration": 200
+  },
+  "device": {
+    "auto_detect": true,
+    "force_cpu": false,
+    "cuda_device": 0,
+    "use_fp16": true
+  }
+}

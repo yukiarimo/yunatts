@@ -18,28 +18,28 @@ logger = logging.getLogger(__name__)
 def get_text_for_tts_infer(text, hps, device, symbol_to_id=None):
     """
     Process text for TTS inference with Llama embeddings
-    
+
     Args:
         text: raw input text
         language_str: language code (used for uroman transliteration)
         hps: model hyperparameters
         device: computation device
         symbol_to_id: optional custom symbol mapping
-        
+
     Returns:
         tuple: (phones, llama_emb)
     """
     from hanasu.llama_utils import get_llama_feature
-    
+
     # Get processed text and phones
     phones, llama_emb = clean_text(text, device)
-    
+
     # Convert to sequence IDs - no longer need tone_ids and lang_ids
     phone_ids = cleaned_text_to_sequence(phones, symbol_to_id)
-    
+
     # Convert to tensor
     phones = torch.LongTensor(phone_ids)
-    
+
     # Return the phones tensor and Llama embedding
     return phones, llama_emb
 
