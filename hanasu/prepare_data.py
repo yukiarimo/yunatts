@@ -2,7 +2,6 @@ import json
 from collections import defaultdict
 from random import shuffle
 import math
-from typing import Optional
 from tqdm import tqdm
 import click
 from text.cleaner import clean_text

@@ -3,7 +3,6 @@ import glob
 import argparse
 import logging
 import json
-import subprocess
 import numpy as np
 from scipy.io.wavfile import read
 import torch
@@ -11,7 +10,6 @@ import torchaudio
 import librosa
 from hanasu.text import cleaned_text_to_sequence
 from hanasu.text.cleaner import clean_text
-from hanasu import commons
 MATPLOTLIB_FLAG = False
 logger = logging.getLogger(__name__)
 
@@ -70,25 +68,12 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False
 
     new_state_dict = {}
     for k, v in state_dict.items():
-        try:
-            # assert "emb_g" not in k
-            new_state_dict[k] = saved_state_dict[k]
-            assert saved_state_dict[k].shape == v.shape, (
-                saved_state_dict[k].shape,
-                v.shape,
-            )
-        except Exception as e:
-            print(e)
-            # For upgrading from the old version
-            if "ja_bert_proj" in k:
-                v = torch.zeros_like(v)
-                logger.warn(
-                    f"Seems you are using the old version of the model, the {k} is automatically set to zero for backward compatibility"
-                )
-            else:
-                logger.error(f"{k} is not in the checkpoint")
-
-            new_state_dict[k] = v
+        # assert "emb_g" not in k
+        new_state_dict[k] = saved_state_dict[k]
+        assert saved_state_dict[k].shape == v.shape, (
+            saved_state_dict[k].shape,
+            v.shape,
+        )
 
     if hasattr(model, "module"):
         model.module.load_state_dict(new_state_dict, strict=False)
@@ -140,7 +125,7 @@ def summarize(
         writer.add_audio(k, v, global_step, audio_sampling_rate)
 
 def latest_checkpoint_path(dir_path, regex="G_*.pth"):
-    f_list = glob.glob(os.path.join(dir_path, regex))
+    f_list = glob.glob(os.path.join(dir_path, ))
     f_list.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
     x = f_list[-1]
     return x

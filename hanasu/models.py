@@ -326,8 +326,7 @@ class TextEncoder(nn.Module):
         self.gin_channels = gin_channels
         self.emb = nn.Embedding(n_vocab, hidden_channels)
         nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
-        # Replace BERT projections with Llama embedding projection
-        self.llama_proj = nn.Conv1d(2048, hidden_channels, 1)  # Llama-3.2-1B embedding size is 8192
+        self.llama_proj = nn.Conv1d(2048, hidden_channels, 1)
 
         self.encoder = attentions.Encoder(
             hidden_channels,

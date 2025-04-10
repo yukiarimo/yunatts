@@ -1,4 +1,3 @@
-import re
 import torch
 import soundfile
 import numpy as np
@@ -97,7 +96,7 @@ class TTS(nn.Module):
                         x_tst,
                         x_tst_lengths,
                         speakers,
-                        llama_emb,  # previously ja_bert, now llama_emb
+                        llama_emb,
                         sdp_ratio=sdp_ratio,
                         noise_scale=noise_scale,
                         noise_scale_w=noise_scale_w,
@@ -159,7 +158,7 @@ class TTS(nn.Module):
                     x_tst,
                     x_tst_lengths,
                     speakers,
-                    llama_emb,  # previously ja_bert, now llama_emb
+                    llama_emb,
                     sdp_ratio=sdp_ratio,
                     noise_scale=noise_scale,
                     noise_scale_w=noise_scale_w,
@@ -234,7 +233,7 @@ class TTS(nn.Module):
                         x_tst,
                         x_tst_lengths,
                         speakers,
-                        llama_emb,  # previously ja_bert, now llama_emb
+                        llama_emb,
                         sdp_ratio=sdp_ratio,
                         noise_scale=noise_scale,
                         noise_scale_w=noise_scale_w,

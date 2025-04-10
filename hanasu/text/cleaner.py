@@ -80,20 +80,6 @@ def clean_text(text, device=None):
 
     return phones, llama_emb
 
-def clean_text_bert(text, device=None):
-    """
-    Clean text and return Llama embeddings instead of BERT features
-
-    Args:
-        text (str): Input text in any language
-        language (str, optional): Language code (kept for backward compatibility)
-        device (str, optional): Device for Llama model
-
-    Returns:
-        tuple: (processed_text, phones, tones, word2ph, llama_emb)
-    """
-    return clean_text(text, device=device)
-
 def text_to_sequence(text):
     """
     Convert text to sequence of character IDs
