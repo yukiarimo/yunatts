@@ -21,26 +21,18 @@ Hanasu is a human-like TTS model based on the multilingual Himitsu V1 transforme
 - [Hanasu Converter](#hanasu-converter)
   - [Features](#features)
   - [Installation](#installation-1)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
   - [Quick Start](#quick-start)
-    - [Converting Voice with Pre-trained Models](#converting-voice-with-pre-trained-models)
-  - [Data Preparation](#data-preparation)
-    - [Audio Requirements](#audio-requirements)
-    - [Preprocessing](#preprocessing)
-  - [Training](#training-1)
-    - [Training from Scratch](#training-from-scratch)
-    - [Continuous Training](#continuous-training)
-    - [Training Options](#training-options)
-    - [Monitoring Training](#monitoring-training)
+    - [Training a Voice Model](#training-a-voice-model)
+    - [Converting Voice](#converting-voice)
+  - [Training Details](#training-details)
+    - [Data Preparation](#data-preparation)
+    - [Training Configuration](#training-configuration)
+    - [Training with Limited Data](#training-with-limited-data)
   - [Inference](#inference)
-    - [Single File Conversion](#single-file-conversion)
-    - [Directory Conversion](#directory-conversion)
-    - [Extract Speaker Embedding](#extract-speaker-embedding)
+    - [Voice Conversion Options](#voice-conversion-options)
     - [Batch Conversion](#batch-conversion)
-    - [Inference Options](#inference-options)
-  - [Advanced Usage](#advanced-usage)
-    - [Multi-GPU Training](#multi-gpu-training)
-    - [Custom Audio Processing](#custom-audio-processing)
-    - [Fine-tuning for Specific Voices](#fine-tuning-for-specific-voices)
 
 ## Installation
 To install Hanasu, you can follow the instructions below:
@@ -204,18 +196,25 @@ Hanasu is distributed under the OSI-approved [GNU Affero General Public License 
 For questions or support, please open an issue in the repository or contact the author at yukiarimo@gmail.com.
 
 # Hanasu Converter
-Hanasu Converter is a powerful voice-to-voice conversion system that allows you to transform audio from one voice to another. It supports training on multiple speakers and converting between their voices, as well as training on one speaker and converting to another using reference audio.
+Hanasu Converter is a high-quality voice-to-voice conversion system that transforms audio from one voice to another. It's designed to work with high-pitched anime voices and supports training on as little as 30 minutes of data.
 
 ## Features
 - **Direct Voice-to-Voice Conversion**: Convert between voices without intermediate text representation
-- **Multiple Speaker Support**: Train on multiple speakers and convert between any of them
-- **Reference-Based Conversion**: Use reference audio to define target voice characteristics
-- **High-Quality Audio**: Works with 48kHz stereo audio for high-quality, high-pitched voice recordings
+- **Retrieval-Based Approach**: Convert any input voice to trained voice models
+- **High-Quality Audio**: Works with 48kHz stereo audio for high-pitched anime voice recordings
 - **Cross-Platform Support**: Automatically detects and uses CPU, CUDA, or MPS (Apple Silicon)
-- **Comprehensive Tools**: Includes training, inference, and utility scripts for a complete workflow
+- **Minimal Training Data**: Works with as little as 30 minutes of training data
 
 ## Installation
-Hanasu Converter is designed to be easy to install and use. Follow the instructions below to set up your environment.
+
+### Prerequisites
+
+- Python 3.8 or higher
+- PyTorch 1.12 or higher
+- CUDA (optional, for GPU acceleration)
+- MPS-enabled PyTorch (optional, for Apple Silicon)
+
+### Setup
 
 1. Clone the repository:
 
@@ -224,11 +223,11 @@ git clone https://github.com/yourusername/hanasu-converter.git
 cd hanasu-converter
 ```
 
-2. Create a virtual environment (optional but recommended):
+2. Create a conda environment (optional but recommended):
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+conda create -n hanasu python=3.8
+conda activate hanasu
 ```
 
 3. Install dependencies:
@@ -237,206 +236,106 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Requirements include:
-
-- Python 3.8 or higher
-- PyTorch 1.12 or higher
-- CUDA (optional, for GPU acceleration)
-- MPS-enabled PyTorch (optional, for Apple Silicon)
-
 ## Quick Start
 
-### Converting Voice with Pre-trained Models
+### Training a Voice Model
 
-1. Extract the target speaker embedding from reference audio:
-
-```bash
-python inference.py --config configs/config.json --checkpoint checkpoint.pth \
-    extract --reference reference_audio.wav --output target_embedding.pth
-```
-
-2. Convert a source audio file to the target voice:
+1. Prepare your dataset:
+   - Organize audio files in a directory structure with speaker subdirectories
+   - Create a dataset CSV file:
 
 ```bash
-python inference.py --config configs/config.json --checkpoint checkpoint.pth \
-    convert --source source_audio.wav --target_embedding target_embedding.pth \
-    --output output_audio.wav
+python -c "from hanasuconverter.utils import create_dataset_csv; create_dataset_csv('dataset', 'dataset.csv')"
 ```
 
-## Data Preparation
+2. Train the model:
 
-Hanasu Converter requires audio data for training. The data should be organized as follows:
-
-```
-data/
-├── speaker1/
-│   ├── audio1.wav
-│   ├── audio2.wav
-│   └── ...
-├── speaker2/
-│   ├── audio1.wav
-│   ├── audio2.wav
-│   └── ...
-└── ...
+```bash
+python train.py --config config.json --data_path dataset.csv --output_dir ./outputs
 ```
 
-### Audio Requirements
+### Converting Voice
 
-- Format: WAV, MP3, FLAC, or OGG (will be converted to WAV during preprocessing)
-- Sample Rate: 48kHz (recommended, will be resampled if different)
-- Channels: Mono or Stereo (stereo recommended for high-quality conversion)
-- Duration: 3-10 seconds per file is ideal (longer files will be segmented)
+1. Convert a single audio file:
 
-### Preprocessing
+```bash
+python inference.py --config config.json --model outputs/checkpoints/model_latest.pt convert --source test.wav --output output.wav
+```
+
+2. Convert all files in a directory:
+
+```bash
+python inference.py --config config.json --model path/to/model.pt convert_dir --source_dir path/to/source_dir --output_dir path/to/output_dir
+```
+
+## Training Details
+
+### Data Preparation
+
+Hanasu Converter works best with clean audio data. For optimal results:
+
+1. Use high-quality recordings (48kHz stereo recommended)
+2. Remove background noise and reverb
+3. Normalize audio levels
+4. Split long recordings into 3-10 second segments
 
 You can preprocess your dataset using the utility functions:
 
 ```bash
-# Create a CSV file listing all audio files
-python -c "from hanasu.utils import create_dataset_csv; create_dataset_csv('dataset', 'dataset.csv')"
-
-# Preprocess the dataset (resample, normalize, etc.)
-python -c "from hanasu.utils import preprocess_dataset; preprocess_dataset('dataset.csv', 'processed_data')"
+python -c "from hanasuconverter.utils import preprocess_dataset; preprocess_dataset('dataset.csv', 'path/to/processed_data')"
 ```
 
-## Training
+### Training Configuration
 
-### Training from Scratch
+The `config.json` file contains all adjustable parameters. Key settings include:
 
-To train a model from scratch:
+```json
+{
+  "model": {
+    "hidden_channels": 256,
+    "gin_channels": 256
+  },
+  "train": {
+    "learning_rate": 5e-5,
+    "batch_size": 8,
+    "weight_decay": 0.01
+  }
+}
+```
+
+### Training with Limited Data
+
+For training with as little as 30 minutes of data:
+
+1. Use the provided `test_minimal_data.py` script to create a small dataset:
 
 ```bash
-python train.py --config configs/config.json --data_path dataset.csv --output_dir outputs
+python test_minimal_data.py --audio_dir path/to/audio --output_dir ./test_output --epochs 100
 ```
 
-### Continuous Training
-
-To continue training from a checkpoint:
-
-```bash
-python train.py --config configs/config.json --data_path dataset.csv --output_dir outputs \
-    --checkpoint_path outputs/checkpoints/model_latest.pt
-```
-
-### Training Options
-
-- `--config`: Path to the configuration file
-- `--data_path`: Path to the data directory or CSV file
-- `--output_dir`: Directory to save output files
-- `--checkpoint_dir`: Directory to save checkpoints
-- `--log_dir`: Directory to save logs
-- `--checkpoint_path`: Path to checkpoint for continuing training
-- `--epochs`: Number of training epochs
-- `--batch_size`: Batch size for training
-- `--learning_rate`: Learning rate for optimization
-- `--seed`: Random seed for reproducibility
-
-### Monitoring Training
-
-Training progress can be monitored using TensorBoard:
-
-```bash
-tensorboard --logdir outputs/logs
-```
+2. Use data augmentation techniques:
+   - Pitch shifting
+   - Time stretching
+   - Adding small amounts of noise
 
 ## Inference
 
-Hanasu Converter provides several inference modes for different use cases.
+### Voice Conversion Options
 
-### Single File Conversion
-
-Convert a single audio file:
+Hanasu Converter uses a retrieval-based approach, where any input voice can be converted to the trained voice model:
 
 ```bash
-python inference.py --config configs/config.json --checkpoint outputs/checkpoints/model_latest.pt \
-    convert --source test.wav --target_embedding target_embedding.pth \
-    --output output_audio.wav
+python inference.py --config config.json --model path/to/model.pt convert --source path/to/source.wav --output path/to/output.wav
 ```
 
-### Directory Conversion
-
-Convert all audio files in a directory:
-
-```bash
-python inference.py --config configs/config.json --checkpoint checkpoint.pth \
-    convert_dir --source_dir source_dir --target_embedding target_embedding.pth \
-    --output_dir output_dir
-```
-
-### Extract Speaker Embedding
-
-Extract speaker embedding from reference audio:
-
-```bash
-python inference.py --config configs/config.json --checkpoint outputs/checkpoints/model_latest.pt \
-    extract --reference emb.wav --output target_embedding.pth
-```
+The `--tau` parameter controls the temperature of the conversion (default: 0.7):
+- Lower values (0.3-0.5): More stable but less expressive
+- Higher values (0.7-1.0): More expressive but potentially less stable
 
 ### Batch Conversion
 
-Perform batch conversion between multiple speakers:
+Convert multiple files using multiple trained models:
 
 ```bash
-python inference.py --config configs/config.json --checkpoint checkpoint.pth \
-    batch --source_dir source_dir --reference_dir reference_dir \
-    --output_dir output_dir
-```
-
-### Inference Options
-
-- `--config`: Path to the configuration file
-- `--checkpoint`: Path to the model checkpoint
-- `--device`: Device to use (cuda, mps, cpu)
-- `--tau`: Temperature parameter for conversion (default: 0.3)
-
-## Advanced Usage
-
-### Multi-GPU Training
-
-To train with multiple GPUs:
-
-```bash
-python train.py --config configs/config.json --data_path data --output_dir output
-```
-
-The system will automatically detect available GPUs and use distributed training if multiple GPUs are available.
-
-### Custom Audio Processing
-
-You can customize audio processing parameters in the configuration file:
-
-```json
-"audio": {
-  "stereo": true,
-  "normalize_audio": true,
-  "target_level": -27,
-  "vad_threshold": -40,
-  "min_silence_duration": 500,
-  "keep_silence_duration": 200
-}
-```
-
-### Fine-tuning for Specific Voices
-
-For better results with specific voice types (e.g., high-pitched anime voices):
-
-1. Prepare a dataset with similar voice characteristics
-2. Adjust the mel spectrogram parameters in the configuration:
-
-```json
-"data": {
-  "sampling_rate": 48000,
-  "filter_length": 2048,
-  "hop_length": 512,
-  "win_length": 2048,
-  "n_mel_channels": 128,
-  "mel_fmin": 0.0,
-  "mel_fmax": 24000.0
-}
-```
-
-3. Train the model with a smaller learning rate:
-
-```bash
-python train.py --config configs/config.json --data_path data --output_dir output --learning_rate 1e-4
+python inference.py --config config.json batch --source_dir path/to/source_dir --model_dir path/to/model_dir --output_dir path/to/output_dir
 ```
